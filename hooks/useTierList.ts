@@ -3,7 +3,7 @@
 import { useReducer, useEffect, useCallback, useRef } from 'react'
 import { TierList, TierItem, Tier, HistoryAction } from '@/types'
 import { createNewList, generateId } from '@/lib/utils'
-import { saveList, subscribeToUserLists, deleteList as deleteCloudList } from '@/lib/firestore'
+import { saveList, getUserLists, deleteList as deleteCloudList } from '@/lib/firestore'
 import { useAuth } from './useAuth'
 
 const STORAGE_KEY = 'tierfire_lists'
@@ -309,12 +309,7 @@ export function useTierList() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const hasLoadedRef = useRef(false)
   const lastSyncedByIdRef = useRef<Record<string, string>>({})
-  const currentListsRef = useRef<TierList[]>([])
   const pendingSaveIdsRef = useRef<Set<string>>(new Set())
-
-  useEffect(() => {
-    currentListsRef.current = state.lists
-  }, [state.lists])
 
   const loadGuestLists = useCallback(() => {
     try {
@@ -336,30 +331,28 @@ export function useTierList() {
     if (authLoading) return
 
     if (user) {
-      const unsubscribe = subscribeToUserLists(
-        user.uid,
-        (cloudLists) => {
+      let cancelled = false
+
+      async function loadCloudLists() {
+        try {
+          const cloudLists = await getUserLists(user!.uid)
           const importedUserId = localStorage.getItem(IMPORTED_USER_KEY)
-          const shouldImportLocal = importedUserId !== user.uid
+          const shouldImportLocal = importedUserId !== user!.uid
           const localLists = shouldImportLocal ? readLocalLists() : []
           const importedLocalLists = localLists.map((list) => ({
             ...list,
             id: list.ownerId ? list.id : generateId(),
-            ownerId: user.uid,
+            ownerId: user!.uid,
             isPublic: false,
             updatedAt: Date.now(),
           }))
 
-          const localPendingLists = currentListsRef.current.filter((list) =>
-            pendingSaveIdsRef.current.has(list.id)
-          )
-          const mergedLists = mergeListsById(
-            mergeListsById(cloudLists, importedLocalLists),
-            localPendingLists
-          )
+          if (cancelled) return
+
+          const mergedLists = mergeListsById(cloudLists, importedLocalLists)
 
           if (shouldImportLocal) {
-            localStorage.setItem(IMPORTED_USER_KEY, user.uid)
+            localStorage.setItem(IMPORTED_USER_KEY, user!.uid)
             importedLocalLists.forEach((list) => {
               void saveList(list)
             })
@@ -367,7 +360,7 @@ export function useTierList() {
 
           if (mergedLists.length === 0) {
             const newList = createNewList('My Tier List')
-            newList.ownerId = user.uid
+            newList.ownerId = user!.uid
             newList.isPublic = false
             dispatch({ type: 'LOAD', lists: [newList], activeListId: newList.id })
             void saveList(newList)
@@ -384,13 +377,17 @@ export function useTierList() {
           )
           dispatch({ type: 'LOAD', lists: mergedLists, activeListId })
           hasLoadedRef.current = true
-        },
-        () => {
+        } catch (error) {
+          console.error('Failed to load cloud lists:', error)
           loadGuestLists()
         }
-      )
+      }
 
-      return () => unsubscribe()
+      void loadCloudLists()
+
+      return () => {
+        cancelled = true
+      }
     }
 
     loadGuestLists()

@@ -8,7 +8,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   onSnapshot,
   setDoc,
 } from 'firebase/firestore'
@@ -79,11 +78,12 @@ export async function deleteList(listId: string): Promise<void> {
 export async function getUserLists(userId: string): Promise<TierList[]> {
   const q = query(
     collection(db, LISTS_COLLECTION),
-    where('ownerId', '==', userId),
-    orderBy('updatedAt', 'desc')
+    where('ownerId', '==', userId)
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((d) => normalizeList(d.id, d.data()))
+  return snapshot.docs
+    .map((d) => normalizeList(d.id, d.data()))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 export async function getSharedList(listId: string): Promise<TierList | null> {
@@ -114,14 +114,17 @@ export function subscribeToUserLists(
 ): () => void {
   const q = query(
     collection(db, LISTS_COLLECTION),
-    where('ownerId', '==', userId),
-    orderBy('updatedAt', 'desc')
+    where('ownerId', '==', userId)
   )
 
   return onSnapshot(
     q,
     (snapshot) => {
-      callback(snapshot.docs.map((d) => normalizeList(d.id, d.data())))
+      callback(
+        snapshot.docs
+          .map((d) => normalizeList(d.id, d.data()))
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+      )
     },
     (error) => {
       onError?.(error)
