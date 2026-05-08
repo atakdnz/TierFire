@@ -1,11 +1,14 @@
 'use client'
 
-import { useReducer, useEffect, useCallback } from 'react'
+import { useReducer, useEffect, useCallback, useRef } from 'react'
 import { TierList, TierItem, Tier, HistoryAction } from '@/types'
 import { createNewList, generateId } from '@/lib/utils'
+import { saveList, subscribeToUserLists, deleteList as deleteCloudList } from '@/lib/firestore'
+import { useAuth } from './useAuth'
 
 const STORAGE_KEY = 'tierfire_lists'
 const ACTIVE_LIST_KEY = 'tierfire_active_list'
+const IMPORTED_USER_KEY = 'tierfire_imported_user'
 const MAX_HISTORY = 50
 
 interface State {
@@ -18,9 +21,10 @@ interface State {
 type Action =
   | { type: 'LOAD'; lists: TierList[]; activeListId: string | null }
   | { type: 'SET_ACTIVE'; listId: string }
-  | { type: 'CREATE_LIST'; title: string }
+  | { type: 'CREATE_LIST'; title: string; ownerId?: string }
   | { type: 'DELETE_LIST'; listId: string }
   | { type: 'UPDATE_LIST_TITLE'; listId: string; title: string }
+  | { type: 'TOGGLE_PUBLIC'; listId: string }
   | { type: 'ADD_ITEM'; listId: string; item: TierItem }
   | { type: 'UPDATE_ITEM'; listId: string; item: TierItem; previous: TierItem }
   | { type: 'REMOVE_ITEM'; listId: string; item: TierItem }
@@ -147,13 +151,17 @@ function reverseAction(action: HistoryAction): HistoryAction | null {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'LOAD':
-      return { ...state, lists: action.lists, activeListId: action.activeListId }
+      return { ...state, lists: action.lists, activeListId: action.activeListId, history: [], historyIndex: -1 }
 
     case 'SET_ACTIVE':
       return { ...state, activeListId: action.listId }
 
     case 'CREATE_LIST': {
       const newList = createNewList(action.title)
+      if (action.ownerId) {
+        newList.ownerId = action.ownerId
+        newList.isPublic = false
+      }
       return {
         ...state,
         lists: [...state.lists, newList],
@@ -177,6 +185,13 @@ function reducer(state: State, action: Action): State {
     case 'UPDATE_LIST_TITLE': {
       const lists = state.lists.map(l =>
         l.id === action.listId ? { ...l, title: action.title, updatedAt: Date.now() } : l
+      )
+      return { ...state, lists }
+    }
+
+    case 'TOGGLE_PUBLIC': {
+      const lists = state.lists.map(l =>
+        l.id === action.listId ? { ...l, isPublic: !l.isPublic, updatedAt: Date.now() } : l
       )
       return { ...state, lists }
     }
@@ -264,11 +279,30 @@ const initialState: State = {
   historyIndex: -1,
 }
 
-export function useTierList() {
-  const [state, dispatch] = useReducer(reducer, initialState)
+function readLocalLists(): TierList[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return []
+    return JSON.parse(stored) as TierList[]
+  } catch {
+    return []
+  }
+}
 
-  // Load from localStorage on mount
-  useEffect(() => {
+function mergeListsById(primary: TierList[], secondary: TierList[]): TierList[] {
+  const listsById = new Map<string, TierList>()
+  primary.forEach((list) => listsById.set(list.id, list))
+  secondary.forEach((list) => listsById.set(list.id, list))
+  return Array.from(listsById.values()).sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+export function useTierList() {
+  const { user, loading: authLoading } = useAuth()
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const hasLoadedRef = useRef(false)
+  const lastSyncedRef = useRef('')
+
+  const loadGuestLists = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       const activeId = localStorage.getItem(ACTIVE_LIST_KEY)
@@ -281,29 +315,107 @@ export function useTierList() {
     } catch {
       dispatch({ type: 'CREATE_LIST', title: 'My Tier List' })
     }
+    hasLoadedRef.current = true
   }, [])
 
-  // Save to localStorage on change
   useEffect(() => {
-    if (state.lists.length > 0) {
+    if (authLoading) return
+
+    if (user) {
+      const unsubscribe = subscribeToUserLists(
+        user.uid,
+        (cloudLists) => {
+          const importedUserId = localStorage.getItem(IMPORTED_USER_KEY)
+          const shouldImportLocal = importedUserId !== user.uid
+          const localLists = shouldImportLocal ? readLocalLists() : []
+          const importedLocalLists = localLists.map((list) => ({
+            ...list,
+            id: list.ownerId ? list.id : generateId(),
+            ownerId: user.uid,
+            isPublic: false,
+            updatedAt: Date.now(),
+          }))
+
+          const mergedLists = mergeListsById(cloudLists, importedLocalLists)
+
+          if (shouldImportLocal) {
+            localStorage.setItem(IMPORTED_USER_KEY, user.uid)
+            importedLocalLists.forEach((list) => {
+              void saveList(list)
+            })
+          }
+
+          if (mergedLists.length === 0) {
+            const newList = createNewList('My Tier List')
+            newList.ownerId = user.uid
+            newList.isPublic = false
+            dispatch({ type: 'LOAD', lists: [newList], activeListId: newList.id })
+            void saveList(newList)
+            hasLoadedRef.current = true
+            return
+          }
+
+          const activeId = localStorage.getItem(ACTIVE_LIST_KEY)
+          const activeListId = mergedLists.some((list) => list.id === activeId)
+            ? activeId
+            : mergedLists[0]?.id || null
+          lastSyncedRef.current = JSON.stringify(mergedLists)
+          dispatch({ type: 'LOAD', lists: mergedLists, activeListId })
+          hasLoadedRef.current = true
+        },
+        () => {
+          loadGuestLists()
+        }
+      )
+
+      return () => unsubscribe()
+    }
+
+    loadGuestLists()
+  }, [authLoading, user, loadGuestLists])
+
+  useEffect(() => {
+    if (!hasLoadedRef.current || state.lists.length === 0) return
+
+    if (!user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists))
       if (state.activeListId) {
         localStorage.setItem(ACTIVE_LIST_KEY, state.activeListId)
       }
+      return
     }
-  }, [state.lists, state.activeListId])
+
+    if (state.activeListId) {
+      localStorage.setItem(ACTIVE_LIST_KEY, state.activeListId)
+    }
+
+    const serialized = JSON.stringify(state.lists)
+    if (serialized === lastSyncedRef.current) return
+    lastSyncedRef.current = serialized
+
+    state.lists.forEach((list) => {
+      void saveList({
+        ...list,
+        ownerId: user.uid,
+        isPublic: list.isPublic ?? false,
+      })
+    })
+  }, [state.lists, state.activeListId, user])
 
   const activeList = state.lists.find(l => l.id === state.activeListId) || null
   const canUndo = state.historyIndex >= 0
   const canRedo = state.historyIndex < state.history.length - 1
 
   const createList = useCallback((title: string) => {
-    dispatch({ type: 'CREATE_LIST', title })
-  }, [])
+    dispatch({ type: 'CREATE_LIST', title, ownerId: user?.uid })
+  }, [user])
 
   const deleteList = useCallback((listId: string) => {
+    if (user) {
+      void deleteCloudList(listId)
+    }
     dispatch({ type: 'DELETE_LIST', listId })
-  }, [])
+  }, [user])
 
   const setActiveList = useCallback((listId: string) => {
     dispatch({ type: 'SET_ACTIVE', listId })
@@ -311,6 +423,10 @@ export function useTierList() {
 
   const updateListTitle = useCallback((listId: string, title: string) => {
     dispatch({ type: 'UPDATE_LIST_TITLE', listId, title })
+  }, [])
+
+  const togglePublic = useCallback((listId: string) => {
+    dispatch({ type: 'TOGGLE_PUBLIC', listId })
   }, [])
 
   const addItem = useCallback((listId: string, label: string, imageUrl?: string) => {
@@ -378,6 +494,7 @@ export function useTierList() {
     deleteList,
     setActiveList,
     updateListTitle,
+    togglePublic,
     addItem,
     updateItem,
     removeItem,

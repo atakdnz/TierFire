@@ -16,6 +16,7 @@ export default function BoardPage() {
     deleteList,
     setActiveList,
     updateListTitle,
+    togglePublic,
     addItem,
     updateItem,
     removeItem,
@@ -75,7 +76,7 @@ export default function BoardPage() {
       onUndo={undo}
       onRedo={redo}
       onDeleteList={() => deleteList(activeList.id)}
-      onTogglePublic={() => {}}
+      onTogglePublic={() => togglePublic(activeList.id)}
       onLogout={async () => {
         await logout()
       }}
