@@ -25,6 +25,7 @@ type Action =
   | { type: 'DELETE_LIST'; listId: string }
   | { type: 'UPDATE_LIST_TITLE'; listId: string; title: string }
   | { type: 'TOGGLE_PUBLIC'; listId: string }
+  | { type: 'REPLACE_LIST'; list: TierList }
   | { type: 'ADD_ITEM'; listId: string; item: TierItem }
   | { type: 'UPDATE_ITEM'; listId: string; item: TierItem; previous: TierItem }
   | { type: 'REMOVE_ITEM'; listId: string; item: TierItem }
@@ -194,6 +195,13 @@ function reducer(state: State, action: Action): State {
         l.id === action.listId ? { ...l, isPublic: !l.isPublic, updatedAt: Date.now() } : l
       )
       return { ...state, lists }
+    }
+
+    case 'REPLACE_LIST': {
+      const lists = state.lists.map(l =>
+        l.id === action.list.id ? { ...action.list, updatedAt: Date.now() } : l
+      )
+      return { ...state, lists, activeListId: action.list.id, history: [], historyIndex: -1 }
     }
 
     case 'ADD_ITEM': {
@@ -429,6 +437,10 @@ export function useTierList() {
     dispatch({ type: 'TOGGLE_PUBLIC', listId })
   }, [])
 
+  const replaceList = useCallback((list: TierList) => {
+    dispatch({ type: 'REPLACE_LIST', list })
+  }, [])
+
   const addItem = useCallback((listId: string, label: string, imageUrl?: string) => {
     const list = state.lists.find((l) => l.id === listId)
     const nextOrder = list?.items.filter((item) => item.tierId === null).length ?? 0
@@ -495,6 +507,7 @@ export function useTierList() {
     setActiveList,
     updateListTitle,
     togglePublic,
+    replaceList,
     addItem,
     updateItem,
     removeItem,

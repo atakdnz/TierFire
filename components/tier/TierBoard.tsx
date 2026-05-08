@@ -15,7 +15,7 @@ import {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User } from 'lucide-react'
+import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save } from 'lucide-react'
 import { type User as FirebaseUser } from 'firebase/auth'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
@@ -41,6 +41,8 @@ interface TierBoardProps {
   onReorderTier: (tierId: string, toOrder: number) => void
   onUpdateTier: (tier: Tier) => void
   onUpdateTitle: (title: string) => void
+  snapshotCount: number
+  onSaveSnapshot: (note: string) => void
   onUndo: () => void
   onRedo: () => void
   onDeleteList: () => void
@@ -63,6 +65,8 @@ export function TierBoard({
   onReorderTier,
   onUpdateTier,
   onUpdateTitle,
+  snapshotCount,
+  onSaveSnapshot,
   onUndo,
   onRedo,
   onDeleteList,
@@ -76,10 +80,12 @@ export function TierBoard({
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showNewListModal, setShowNewListModal] = useState(false)
+  const [showSnapshotModal, setShowSnapshotModal] = useState(false)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [newItemLabel, setNewItemLabel] = useState('')
   const [newListTitle, setNewListTitle] = useState('')
+  const [snapshotNote, setSnapshotNote] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(list.title)
   const [copyingLink, setCopyingLink] = useState(false)
@@ -206,6 +212,13 @@ export function TierBoard({
     setShowSettingsMenu(false)
   }
 
+  const handleSaveSnapshot = () => {
+    onSaveSnapshot(snapshotNote.trim())
+    setSnapshotNote('')
+    setShowSnapshotModal(false)
+    setNotice('Snapshot saved.')
+  }
+
   const handleDeleteItem = () => {
     const item = list.items.find((i) => i.id === selectedItemId)
     if (item) {
@@ -271,6 +284,10 @@ export function TierBoard({
             </Button>
             <Button variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)">
               <Redo2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowSnapshotModal(true)} title="Save snapshot">
+              <Save className="w-4 h-4" />
+              <span className="hidden lg:inline ml-1">{snapshotCount}</span>
             </Button>
 
             <Button variant={tapMode ? 'primary' : 'secondary'} size="sm" onClick={() => setTapMode(!tapMode)} className="md:hidden">
@@ -447,6 +464,23 @@ export function TierBoard({
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setShowNewListModal(false)}>Cancel</Button>
             <Button variant="primary" onClick={handleCreateList}>Create</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showSnapshotModal} onClose={() => setShowSnapshotModal(false)} title="Save Snapshot">
+        <div className="space-y-4">
+          <Input
+            label="Note"
+            value={snapshotNote}
+            onChange={(e) => setSnapshotNote(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSaveSnapshot()}
+            placeholder="What changed? (optional)"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowSnapshotModal(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveSnapshot}>Save</Button>
           </div>
         </div>
       </Modal>

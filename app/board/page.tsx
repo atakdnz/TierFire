@@ -3,6 +3,7 @@
 import { useTierList } from '@/hooks/useTierList'
 import { TierBoard } from '@/components/tier/TierBoard'
 import { useAuth } from '@/hooks/useAuth'
+import { useHistory } from '@/hooks/useHistory'
 import { useEffect } from 'react'
 
 export default function BoardPage() {
@@ -26,6 +27,10 @@ export default function BoardPage() {
     undo,
     redo,
   } = useTierList()
+  const {
+    snapshots,
+    saveSnapshot,
+  } = useHistory(activeList)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,6 +78,10 @@ export default function BoardPage() {
         if (prev) updateTier(activeList.id, tier, prev)
       }}
       onUpdateTitle={(title) => updateListTitle(activeList.id, title)}
+      snapshotCount={snapshots.length}
+      onSaveSnapshot={(note) => {
+        void saveSnapshot(note)
+      }}
       onUndo={undo}
       onRedo={redo}
       onDeleteList={() => deleteList(activeList.id)}
