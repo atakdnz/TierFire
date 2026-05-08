@@ -3,14 +3,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Clock, RotateCcw, Play, Pause, ChevronRight } from 'lucide-react'
-import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
+import { ArrowLeft, Loader2, Clock, Play, Pause } from 'lucide-react'
+import { TierList as TierListType, TierItem as TierItemType } from '@/types'
 import { getList } from '@/lib/firestore'
-import { getListSnapshots, getItemTierHistory, Snapshot } from '@/lib/snapshots'
+import { getListSnapshots, Snapshot } from '@/lib/snapshots'
 import { TierRow } from '@/components/tier/TierRow'
 import { TierItem } from '@/components/tier/TierItem'
-import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
 export default function HistoryPage() {
   const params = useParams()
@@ -23,10 +21,6 @@ export default function HistoryPage() {
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null)
   const [playing, setPlaying] = useState(false)
   const [playIndex, setPlayIndex] = useState(0)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  )
 
   useEffect(() => {
     async function load() {
@@ -67,7 +61,7 @@ export default function HistoryPage() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [playing, snapshots.length])
+  }, [playing, snapshots])
 
   const displayItems = selectedSnapshot?.items || list?.items || []
   const displayTiers = selectedSnapshot?.tiers || list?.tiers || []

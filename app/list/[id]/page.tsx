@@ -3,23 +3,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-} from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { ArrowLeft, Loader2, Lock } from 'lucide-react'
 import { TierList as TierListType, TierItem as TierItemType } from '@/types'
 import { TierRow } from '@/components/tier/TierRow'
-import { TierItem } from '@/components/tier/TierItem'
 import { getList } from '@/lib/firestore'
 
 export default function SharedListPage() {
@@ -30,13 +16,6 @@ export default function SharedListPage() {
   const [list, setList] = useState<TierListType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [activeItem, setActiveItem] = useState<TierItemType | null>(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
 
   useEffect(() => {
     async function loadList() {
@@ -60,7 +39,6 @@ export default function SharedListPage() {
   }, [listId])
 
   const sortedTiers = useMemo(() => list ? [...list.tiers].sort((a, b) => a.order - b.order) : [], [list])
-  const tierIds = useMemo(() => sortedTiers.map((t) => t.id), [sortedTiers])
 
   const itemsByTier = useMemo(() => {
     if (!list) return {}
@@ -70,20 +48,6 @@ export default function SharedListPage() {
     })
     return map
   }, [list])
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const item = list?.items.find((i) => i.id === event.active.id)
-    if (item) {
-      setActiveId(event.active.id as string)
-      setActiveItem(item)
-    }
-  }
-
-  const handleDragOver = (event: DragOverEvent) => {}
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null)
-    setActiveItem(null)
-  }
 
   if (loading) {
     return (
@@ -120,14 +84,11 @@ export default function SharedListPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className="space-y-2">
-            {sortedTiers.map((tier) => (
-              <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />
-            ))}
-          </div>
-          <DragOverlay>{activeItem ? <TierItem item={activeItem} overlay /> : null}</DragOverlay>
-        </DndContext>
+        <div className="space-y-2">
+          {sortedTiers.map((tier) => (
+            <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />
+          ))}
+        </div>
       </main>
     </div>
   )
