@@ -122,6 +122,10 @@ export function TierBoard({
     }
   }
 
+  const handleDragOver = () => {
+    // Keep DndContext callback registration stable without mutating list state during hover.
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) {
@@ -386,7 +390,7 @@ export function TierBoard({
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
               {sortedTiers.map((tier) => (
