@@ -69,7 +69,6 @@ export async function updateList(listId: string, data: Partial<TierList>): Promi
 export async function saveList(list: TierList): Promise<void> {
   await setDoc(doc(db, LISTS_COLLECTION, list.id), {
     ...list,
-    updatedAt: Date.now(),
   }, { merge: true })
 }
 

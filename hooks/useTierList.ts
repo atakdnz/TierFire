@@ -308,7 +308,13 @@ export function useTierList() {
   const { user, loading: authLoading } = useAuth()
   const [state, dispatch] = useReducer(reducer, initialState)
   const hasLoadedRef = useRef(false)
-  const lastSyncedRef = useRef('')
+  const lastSyncedByIdRef = useRef<Record<string, string>>({})
+  const currentListsRef = useRef<TierList[]>([])
+  const pendingSaveIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    currentListsRef.current = state.lists
+  }, [state.lists])
 
   const loadGuestLists = useCallback(() => {
     try {
@@ -344,7 +350,13 @@ export function useTierList() {
             updatedAt: Date.now(),
           }))
 
-          const mergedLists = mergeListsById(cloudLists, importedLocalLists)
+          const localPendingLists = currentListsRef.current.filter((list) =>
+            pendingSaveIdsRef.current.has(list.id)
+          )
+          const mergedLists = mergeListsById(
+            mergeListsById(cloudLists, importedLocalLists),
+            localPendingLists
+          )
 
           if (shouldImportLocal) {
             localStorage.setItem(IMPORTED_USER_KEY, user.uid)
@@ -367,7 +379,9 @@ export function useTierList() {
           const activeListId = mergedLists.some((list) => list.id === activeId)
             ? activeId
             : mergedLists[0]?.id || null
-          lastSyncedRef.current = JSON.stringify(mergedLists)
+          lastSyncedByIdRef.current = Object.fromEntries(
+            mergedLists.map((list) => [list.id, JSON.stringify(list)])
+          )
           dispatch({ type: 'LOAD', lists: mergedLists, activeListId })
           hasLoadedRef.current = true
         },
@@ -397,17 +411,39 @@ export function useTierList() {
       localStorage.setItem(ACTIVE_LIST_KEY, state.activeListId)
     }
 
-    const serialized = JSON.stringify(state.lists)
-    if (serialized === lastSyncedRef.current) return
-    lastSyncedRef.current = serialized
-
-    state.lists.forEach((list) => {
-      void saveList({
+    const dirtyLists = state.lists.filter((list) => {
+      const listWithOwner = {
         ...list,
         ownerId: user.uid,
         isPublic: list.isPublic ?? false,
-      })
+      }
+      return JSON.stringify(listWithOwner) !== lastSyncedByIdRef.current[list.id]
     })
+
+    if (dirtyLists.length === 0) return
+
+    dirtyLists.forEach((list) => pendingSaveIdsRef.current.add(list.id))
+
+    void Promise.all(
+      dirtyLists.map(async (list) => {
+        const listWithOwner = {
+          ...list,
+          ownerId: user.uid,
+          isPublic: list.isPublic ?? false,
+        }
+        await saveList(listWithOwner)
+        return listWithOwner
+      })
+    )
+      .then((savedLists) => {
+        savedLists.forEach((list) => {
+          lastSyncedByIdRef.current[list.id] = JSON.stringify(list)
+          pendingSaveIdsRef.current.delete(list.id)
+        })
+      })
+      .catch((error) => {
+        console.error('Failed to save tier lists:', error)
+      })
   }, [state.lists, state.activeListId, user])
 
   const activeList = state.lists.find(l => l.id === state.activeListId) || null
