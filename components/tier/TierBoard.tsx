@@ -12,7 +12,6 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
-  DragOverEvent,
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -123,34 +122,6 @@ export function TierBoard({
     }
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    if (!over) return
-    if (active.data.current?.type !== 'item') return
-
-    const activeId = active.id as string
-    const overId = over.id as string
-
-    const activeItem = list.items.find((i) => i.id === activeId)
-    if (!activeItem) return
-
-    const tierIdsList = tierIds
-    let targetTierId: string | null = null
-
-    if (overId === 'item-bank') {
-      targetTierId = null
-    } else if (tierIdsList.includes(overId)) {
-      targetTierId = overId
-    } else {
-      targetTierId = findItemContainer(overId)
-    }
-
-    if (targetTierId !== activeItem.tierId) {
-      const targetItems = itemsByTier[targetTierId || 'bank'] || []
-      onMoveItem(activeId, targetTierId, targetItems.length)
-    }
-  }
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) {
@@ -187,7 +158,7 @@ export function TierBoard({
     } else {
       const overItem = list.items.find((i) => i.id === overId)
       if (overItem) {
-        const targetKey = overItem.tierId || 'bank'
+        const targetKey = findItemContainer(overId) || 'bank'
         const targetItems = itemsByTier[targetKey] || []
         const currentIndex = targetItems.findIndex((i) => i.id === overId)
         onMoveItem(activeId, overItem.tierId, currentIndex === -1 ? targetItems.length : currentIndex)
@@ -415,7 +386,7 @@ export function TierBoard({
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
               {sortedTiers.map((tier) => (
