@@ -3,10 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
+import { Flame, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+
+function getAuthErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return error.message.replace('Firebase: ', '')
+  }
+  return fallback
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -37,8 +44,8 @@ export default function RegisterPage() {
     try {
       await signUpWithEmail(email, password)
       router.push('/board')
-    } catch (err: any) {
-      setError(err.message?.replace('Firebase: ', '') || 'Failed to create account')
+    } catch (err: unknown) {
+      setError(getAuthErrorMessage(err, 'Failed to create account'))
     } finally {
       setLoading(false)
     }
@@ -51,8 +58,8 @@ export default function RegisterPage() {
     try {
       await signInWithGoogle()
       router.push('/board')
-    } catch (err: any) {
-      setError(err.message?.replace('Firebase: ', '') || 'Failed to sign in with Google')
+    } catch (err: unknown) {
+      setError(getAuthErrorMessage(err, 'Failed to sign in with Google'))
     } finally {
       setLoading(false)
     }

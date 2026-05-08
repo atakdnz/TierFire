@@ -33,7 +33,7 @@ type Action =
       toTierId: string | null
       order: number
     }
-  | { type: 'REORDER_TIER'; listId: string; tierId: string; toOrder: number }
+  | { type: 'REORDER_TIER'; listId: string; tierId: string; fromOrder?: number; toOrder: number }
   | { type: 'UPDATE_TIER'; listId: string; tier: Tier; previous: Tier }
   | { type: 'UNDO' }
   | { type: 'REDO' }
@@ -88,11 +88,19 @@ function applyAction(list: TierList, action: HistoryAction): TierList {
         updatedAt: Date.now(),
       }
     case 'REORDER_TIER': {
-      const tiers = list.tiers.map(tier =>
-        tier.id === action.tierId
-          ? { ...tier, order: action.toOrder ?? tier.order }
-          : tier
-      )
+      const movingTier = list.tiers.find((tier) => tier.id === action.tierId)
+      if (!movingTier) return list
+
+      const otherTiers = list.tiers
+        .filter((tier) => tier.id !== action.tierId)
+        .sort((a, b) => a.order - b.order)
+      const targetOrder = Math.max(0, Math.min(action.toOrder ?? otherTiers.length, otherTiers.length))
+      const tiers = [
+        ...otherTiers.slice(0, targetOrder),
+        movingTier,
+        ...otherTiers.slice(targetOrder),
+      ].map((tier, order) => ({ ...tier, order }))
+
       return { ...list, tiers, updatedAt: Date.now() }
     }
     case 'UPDATE_TIER':
@@ -151,7 +159,7 @@ function reducer(state: State, action: Action): State {
         lists: [...state.lists, newList],
         activeListId: newList.id,
         history: [],
-        historyIndex: 0,
+        historyIndex: -1,
       }
     }
 
@@ -296,7 +304,6 @@ export function useTierList() {
 
   const setActiveList = useCallback((listId: string) => {
     dispatch({ type: 'SET_ACTIVE', listId })
-    dispatch({ type: 'SET_ACTIVE', listId })
   }, [])
 
   const updateListTitle = useCallback((listId: string, title: string) => {
@@ -304,15 +311,17 @@ export function useTierList() {
   }, [])
 
   const addItem = useCallback((listId: string, label: string, imageUrl?: string) => {
+    const list = state.lists.find((l) => l.id === listId)
+    const nextOrder = list?.items.filter((item) => item.tierId === null).length ?? 0
     const item: TierItem = {
       id: generateId(),
       label,
       imageUrl,
       tierId: null,
-      order: 0,
+      order: nextOrder,
     }
     dispatch({ type: 'ADD_ITEM', listId, item })
-  }, [])
+  }, [state.lists])
 
   const updateItem = useCallback((listId: string, item: TierItem, previous: TierItem) => {
     dispatch({ type: 'UPDATE_ITEM', listId, item, previous })
@@ -339,8 +348,11 @@ export function useTierList() {
   }, [state.lists])
 
   const reorderTier = useCallback((listId: string, tierId: string, toOrder: number) => {
-    dispatch({ type: 'REORDER_TIER', listId, tierId, toOrder })
-  }, [])
+    const list = state.lists.find((l) => l.id === listId)
+    const tier = list?.tiers.find((t) => t.id === tierId)
+    if (!tier || tier.order === toOrder) return
+    dispatch({ type: 'REORDER_TIER', listId, tierId, fromOrder: tier.order, toOrder })
+  }, [state.lists])
 
   const updateTier = useCallback((listId: string, tier: Tier, previous: Tier) => {
     dispatch({ type: 'UPDATE_TIER', listId, tier, previous })

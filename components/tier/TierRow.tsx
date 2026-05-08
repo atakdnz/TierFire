@@ -4,13 +4,12 @@ import { useSortable } from '@dnd-kit/sortable'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { TierItem as TierItemType, Tier } from '@/types'
 import { TierItem } from './TierItem'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { Input } from '../ui/Input'
-import { Button } from '../ui/Button'
 
 interface TierRowProps {
   tier: Tier
@@ -18,7 +17,6 @@ interface TierRowProps {
   onItemClick?: (item: TierItemType) => void
   selectedItemId?: string | null
   onUpdateTier?: (tier: Tier) => void
-  isOnly?: boolean
 }
 
 const defaultColors = [
@@ -32,7 +30,6 @@ export function TierRow({
   onItemClick,
   selectedItemId,
   onUpdateTier,
-  isOnly,
 }: TierRowProps) {
   const [editingLabel, setEditingLabel] = useState(false)
   const [labelValue, setLabelValue] = useState(tier.label)
@@ -75,7 +72,7 @@ export function TierRow({
       ref={setSortableRef}
       style={style}
       className={cn(
-        'flex min-h-[140px] rounded-lg overflow-hidden',
+        'flex min-h-[140px] rounded-lg overflow-hidden touch-manipulation',
         'transition-all duration-200',
         isDragging && 'opacity-50'
       )}
@@ -86,9 +83,11 @@ export function TierRow({
       >
         <div className="flex-1 flex items-center justify-center">
           <button
+            type="button"
             {...attributes}
             {...listeners}
-            className="p-2 text-white/50 hover:text-white cursor-grab active:cursor-grabbing"
+            className="p-2 text-white/50 hover:text-white cursor-grab active:cursor-grabbing touch-none"
+            aria-label={`Move ${tier.label} tier`}
           >
             <GripVertical className="w-5 h-5" />
           </button>
@@ -117,8 +116,10 @@ export function TierRow({
           )}
           
           <button
+            type="button"
             className="p-1 text-[#525252] hover:text-white"
             onClick={() => setShowColorPicker(!showColorPicker)}
+            aria-label={`Change ${tier.label} tier color`}
           >
             <div
               className="w-4 h-4 rounded-full border border-[#525252]"
@@ -130,6 +131,7 @@ export function TierRow({
             <div className="absolute top-full left-0 mt-1 p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-10 flex flex-wrap gap-1 w-32">
               {defaultColors.map((color) => (
                 <button
+                  type="button"
                   key={color}
                   className="w-6 h-6 rounded-full hover:scale-110 transition-transform"
                   style={{ backgroundColor: color }}

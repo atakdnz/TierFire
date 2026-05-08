@@ -8,6 +8,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
+function getAuthErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return error.message.replace('Firebase: ', '')
+  }
+  return fallback
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { signInWithEmail, signInWithGoogle } = useAuth()
@@ -25,8 +32,8 @@ export default function LoginPage() {
     try {
       await signInWithEmail(email, password)
       router.push('/board')
-    } catch (err: any) {
-      setError(err.message?.replace('Firebase: ', '') || 'Failed to sign in')
+    } catch (err: unknown) {
+      setError(getAuthErrorMessage(err, 'Failed to sign in'))
     } finally {
       setLoading(false)
     }
@@ -39,8 +46,8 @@ export default function LoginPage() {
     try {
       await signInWithGoogle()
       router.push('/board')
-    } catch (err: any) {
-      setError(err.message?.replace('Firebase: ', '') || 'Failed to sign in with Google')
+    } catch (err: unknown) {
+      setError(getAuthErrorMessage(err, 'Failed to sign in with Google'))
     } finally {
       setLoading(false)
     }

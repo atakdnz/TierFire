@@ -9,19 +9,30 @@ cloudinary.config({
 
 export async function POST() {
   try {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    const apiKey = process.env.CLOUDINARY_API_KEY
+    const apiSecret = process.env.CLOUDINARY_API_SECRET
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return NextResponse.json(
+        { error: 'Cloudinary upload is not configured' },
+        { status: 503 }
+      )
+    }
+
     const timestamp = Math.round(new Date().getTime() / 1000)
     const signature = cloudinary.utils.api_sign_request(
       { timestamp, folder: 'tierfire' },
-      process.env.CLOUDINARY_API_SECRET!
+      apiSecret
     )
 
     return NextResponse.json({
       timestamp,
       signature,
-      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName,
+      apiKey,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to generate signature' }, { status: 500 })
   }
 }

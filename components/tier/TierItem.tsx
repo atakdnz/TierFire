@@ -37,6 +37,7 @@ export function TierItem({ item, onClick, selected, overlay }: TierItemProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    zIndex: isDragging ? 50 : undefined,
   }
 
   const overlayBg = item.tierId ? tierColors[item.tierId] : null
@@ -50,9 +51,9 @@ export function TierItem({ item, onClick, selected, overlay }: TierItemProps) {
       onClick={onClick}
       className={cn(
         'w-[120px] h-[120px] rounded-lg cursor-grab active:cursor-grabbing',
-        'bg-[#262626] border-2 border-transparent transition-all duration-200',
+        'bg-[#262626] border-2 border-transparent transition-shadow duration-150 touch-none select-none',
         'flex flex-col items-center justify-center overflow-hidden',
-        isDragging && 'opacity-50 scale-105 shadow-2xl z-50',
+        isDragging && 'opacity-40 shadow-2xl',
         selected && 'border-[#f97316] ring-2 ring-[#f97316]/50',
         overlay && 'shadow-2xl scale-105'
       )}

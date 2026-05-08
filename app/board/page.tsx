@@ -3,18 +3,15 @@
 import { useTierList } from '@/hooks/useTierList'
 import { TierBoard } from '@/components/tier/TierBoard'
 import { useAuth } from '@/hooks/useAuth'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export default function BoardPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, logout } = useAuth()
   const {
-    lists,
     activeList,
     canUndo,
     canRedo,
-    createList,
     deleteList,
-    setActiveList,
     updateListTitle,
     addItem,
     updateItem,
@@ -25,12 +22,6 @@ export default function BoardPage() {
     undo,
     redo,
   } = useTierList()
-
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,7 +39,7 @@ export default function BoardPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [undo, redo])
 
-  if (!mounted || !activeList || authLoading) {
+  if (!activeList || authLoading) {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#f97316] border-t-transparent rounded-full animate-spin" />
@@ -79,6 +70,9 @@ export default function BoardPage() {
       onRedo={redo}
       onDeleteList={() => deleteList(activeList.id)}
       onTogglePublic={() => {}}
+      onLogout={async () => {
+        await logout()
+      }}
     />
   )
 }

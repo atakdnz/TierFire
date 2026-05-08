@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -14,9 +13,11 @@ import {
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  UniqueIdentifier,
 } from '@dnd-kit/core'
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User } from 'lucide-react'
+import { type User as FirebaseUser } from 'firebase/auth'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
 import { TierItem } from './TierItem'
@@ -27,7 +28,7 @@ import { Modal } from '../ui/Modal'
 import { ImageUpload } from '../ui/ImageUpload'
 
 interface TierBoardProps {
-  user: any
+  user: FirebaseUser | null
   list: TierListType
   canUndo: boolean
   canRedo: boolean
@@ -42,6 +43,7 @@ interface TierBoardProps {
   onRedo: () => void
   onDeleteList: () => void
   onTogglePublic: () => void
+  onLogout: () => void
 }
 
 export function TierBoard({
@@ -60,9 +62,10 @@ export function TierBoard({
   onRedo,
   onDeleteList,
   onTogglePublic,
+  onLogout,
 }: TierBoardProps) {
-  const router = useRouter()
   const [activeItem, setActiveItem] = useState<TierItemType | null>(null)
+  const [activeTier, setActiveTier] = useState<Tier | null>(null)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [tapMode, setTapMode] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -75,7 +78,7 @@ export function TierBoard({
   const [copyingLink, setCopyingLink] = useState(false)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -91,7 +94,19 @@ export function TierBoard({
     return map
   }, [list.items, list.tiers])
 
+  const findItemContainer = (id: UniqueIdentifier): string | null => {
+    const item = list.items.find((i) => i.id === id)
+    return item?.tierId ?? null
+  }
+
   const handleDragStart = (event: DragStartEvent) => {
+    const type = event.active.data.current?.type
+    if (type === 'tier') {
+      const tier = list.tiers.find((tier) => tier.id === event.active.id)
+      if (tier) setActiveTier(tier)
+      return
+    }
+
     const item = list.items.find((i) => i.id === event.active.id)
     if (item) {
       setActiveItem(item)
@@ -101,6 +116,7 @@ export function TierBoard({
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
     if (!over) return
+    if (active.data.current?.type !== 'item') return
 
     const activeId = active.id as string
     const overId = over.id as string
@@ -116,8 +132,7 @@ export function TierBoard({
     } else if (tierIdsList.includes(overId)) {
       targetTierId = overId
     } else {
-      const overItem = list.items.find((i) => i.id === overId)
-      if (overItem) targetTierId = overItem.tierId
+      targetTierId = findItemContainer(overId)
     }
 
     if (targetTierId !== activeItem.tierId) {
@@ -130,11 +145,28 @@ export function TierBoard({
     const { active, over } = event
     if (!over) {
       setActiveItem(null)
+      setActiveTier(null)
       return
     }
 
     const activeId = active.id as string
     const overId = over.id as string
+    const activeType = active.data.current?.type
+
+    if (activeType === 'tier') {
+      if (tierIds.includes(overId) && activeId !== overId) {
+        const targetIndex = sortedTiers.findIndex((tier) => tier.id === overId)
+        if (targetIndex !== -1) onReorderTier(activeId, targetIndex)
+      }
+      setActiveTier(null)
+      return
+    }
+
+    if (activeType !== 'item') {
+      setActiveItem(null)
+      setActiveTier(null)
+      return
+    }
 
     if (overId === 'item-bank') {
       const targetItems = itemsByTier.bank || []
@@ -153,6 +185,7 @@ export function TierBoard({
     }
 
     setActiveItem(null)
+    setActiveTier(null)
   }
 
   const handleItemClick = (item: TierItemType) => {
@@ -297,7 +330,7 @@ export function TierBoard({
                     </div>
                     <button
                       className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-[#262626] flex items-center gap-2"
-                      onClick={() => router.push('/')}
+                      onClick={onLogout}
                     >
                       <LogOut className="w-4 h-4" /> Sign Out
                     </button>
@@ -312,11 +345,13 @@ export function TierBoard({
       <main className="max-w-7xl mx-auto px-4 py-6">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
-            {sortedTiers.map((tier) => (
-              <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
-                <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
-              </div>
-            ))}
+            <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
+              {sortedTiers.map((tier) => (
+                <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
+                  <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
+                </div>
+              ))}
+            </SortableContext>
           </div>
 
           <div className="mt-8">
@@ -328,7 +363,17 @@ export function TierBoard({
             </div>
             <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} />
           </div>
-          <DragOverlay>{activeItem ? <TierItem item={activeItem} overlay /> : null}</DragOverlay>
+          <DragOverlay>
+            {activeItem ? <TierItem item={activeItem} overlay /> : null}
+            {!activeItem && activeTier ? (
+              <div className="h-[72px] min-w-[220px] rounded-lg border border-[#404040] bg-[#1a1a1a] shadow-2xl flex overflow-hidden">
+                <div className="w-20 flex items-center justify-center font-bold text-white" style={{ backgroundColor: activeTier.color }}>
+                  {activeTier.label}
+                </div>
+                <div className="flex-1 px-4 flex items-center text-sm text-[#a1a1a1]">Move tier</div>
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </main>
 

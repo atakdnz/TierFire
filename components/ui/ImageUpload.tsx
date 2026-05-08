@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from './Button'
 
 interface ImageUploadProps {
   value?: string
@@ -35,7 +34,12 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
 
     try {
       const signResponse = await fetch('/api/cloudinary/upload', { method: 'POST' })
+      if (!signResponse.ok) throw new Error('Cloudinary signing is not configured')
+
       const { timestamp, signature, cloudName, apiKey } = await signResponse.json()
+      if (!timestamp || !signature || !cloudName || !apiKey) {
+        throw new Error('Cloudinary signing response is incomplete')
+      }
 
       const formData = new FormData()
       formData.append('file', file)
@@ -56,10 +60,21 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
       } else {
         throw new Error('Upload failed')
       }
-    } catch (err) {
-      setError('Failed to upload image')
+    } catch {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          onChange(reader.result)
+          setError('Using local image preview because Cloudinary is not configured.')
+        } else {
+          setError('Failed to upload image')
+        }
+      }
+      reader.onerror = () => setError('Failed to upload image')
+      reader.readAsDataURL(file)
     } finally {
       setUploading(false)
+      if (inputRef.current) inputRef.current.value = ''
     }
   }
 
@@ -74,13 +89,19 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
             type="button"
             onClick={() => onChange('')}
             className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70"
+            aria-label="Remove image"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => inputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click()
+          }}
           className={cn(
             'w-full aspect-square rounded-lg border-2 border-dashed border-[#262626]',
             'flex flex-col items-center justify-center cursor-pointer',
@@ -97,7 +118,7 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
             <>
               <Upload className="w-8 h-8 text-[#525252] mb-2" />
               <span className="text-sm text-[#a1a1a1]">Click to upload</span>
-              <span className="text-xs text-[#525252] mt-1">PNG, JPG - max 5MB</span>
+              <span className="text-xs text-[#525252] mt-1">PNG, JPG, GIF - max 5MB</span>
             </>
           )}
         </div>
