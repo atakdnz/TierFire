@@ -164,11 +164,14 @@ function reducer(state: State, action: Action): State {
     }
 
     case 'DELETE_LIST': {
-      const lists = state.lists.filter(l => l.id !== action.listId)
+      let lists = state.lists.filter(l => l.id !== action.listId)
+      if (lists.length === 0) {
+        lists = [createNewList('My Tier List')]
+      }
       const activeListId = state.activeListId === action.listId
         ? lists[0]?.id || null
         : state.activeListId
-      return { ...state, lists, activeListId }
+      return { ...state, lists, activeListId, history: [], historyIndex: -1 }
     }
 
     case 'UPDATE_LIST_TITLE': {

@@ -8,10 +8,13 @@ import { useEffect } from 'react'
 export default function BoardPage() {
   const { user, loading: authLoading, logout } = useAuth()
   const {
+    lists,
     activeList,
     canUndo,
     canRedo,
+    createList,
     deleteList,
+    setActiveList,
     updateListTitle,
     addItem,
     updateItem,
@@ -50,9 +53,12 @@ export default function BoardPage() {
   return (
     <TierBoard
       user={user}
+      lists={lists}
       list={activeList}
       canUndo={canUndo}
       canRedo={canRedo}
+      onCreateList={createList}
+      onSetActiveList={setActiveList}
       onAddItem={(label, imageUrl) => addItem(activeList.id, label, imageUrl)}
       onUpdateItem={(item) => {
         const prev = activeList.items.find(i => i.id === item.id)

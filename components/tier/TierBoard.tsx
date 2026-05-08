@@ -29,9 +29,12 @@ import { ImageUpload } from '../ui/ImageUpload'
 
 interface TierBoardProps {
   user: FirebaseUser | null
+  lists: TierListType[]
   list: TierListType
   canUndo: boolean
   canRedo: boolean
+  onCreateList: (title: string) => void
+  onSetActiveList: (listId: string) => void
   onAddItem: (label: string, imageUrl?: string) => void
   onUpdateItem: (item: TierItemType) => void
   onRemoveItem: (item: TierItemType) => void
@@ -48,9 +51,12 @@ interface TierBoardProps {
 
 export function TierBoard({
   user,
+  lists,
   list,
   canUndo,
   canRedo,
+  onCreateList,
+  onSetActiveList,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
@@ -70,9 +76,11 @@ export function TierBoard({
   const [tapMode, setTapMode] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showNewListModal, setShowNewListModal] = useState(false)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [newItemLabel, setNewItemLabel] = useState('')
+  const [newListTitle, setNewListTitle] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(list.title)
   const [copyingLink, setCopyingLink] = useState(false)
@@ -84,6 +92,7 @@ export function TierBoard({
 
   const sortedTiers = useMemo(() => [...list.tiers].sort((a, b) => a.order - b.order), [list.tiers])
   const tierIds = useMemo(() => sortedTiers.map((t) => t.id), [sortedTiers])
+  const sortedLists = useMemo(() => [...lists].sort((a, b) => b.updatedAt - a.updatedAt), [lists])
 
   const itemsByTier = useMemo(() => {
     const map: Record<string, TierItemType[]> = {}
@@ -213,6 +222,14 @@ export function TierBoard({
     }
   }
 
+  const handleCreateList = () => {
+    const title = newListTitle.trim() || 'Untitled Tier List'
+    onCreateList(title)
+    setNewListTitle('')
+    setShowNewListModal(false)
+    setShowSettingsMenu(false)
+  }
+
   const handleDeleteItem = () => {
     const item = list.items.find((i) => i.id === selectedItemId)
     if (item) {
@@ -255,7 +272,10 @@ export function TierBoard({
           ) : (
             <h1
               className="text-xl font-bold text-white cursor-pointer hover:text-[#f97316]"
-              onClick={() => setEditingTitle(true)}
+              onClick={() => {
+                setTitleValue(list.title)
+                setEditingTitle(true)
+              }}
             >
               {list.title}
             </h1>
@@ -288,6 +308,30 @@ export function TierBoard({
                   >
                     <Plus className="w-4 h-4" /> Add Item
                   </button>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
+                    onClick={() => { setShowNewListModal(true); setShowSettingsMenu(false) }}
+                  >
+                    <Plus className="w-4 h-4" /> New List
+                  </button>
+                  <div className="border-t border-[#262626] my-1" />
+                  <div className="px-4 py-1.5 text-xs uppercase tracking-wide text-[#525252]">Switch List</div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {sortedLists.map((tierList) => (
+                      <button
+                        key={tierList.id}
+                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center justify-between gap-2"
+                        onClick={() => {
+                          onSetActiveList(tierList.id)
+                          setShowSettingsMenu(false)
+                        }}
+                      >
+                        <span className="truncate">{tierList.title}</span>
+                        {tierList.id === list.id ? <span className="text-[#f97316]">Active</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-[#262626] my-1" />
                   <button
                     className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
                     onClick={handleShare}
@@ -383,6 +427,23 @@ export function TierBoard({
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setShowAddModal(false)}>Cancel</Button>
             <Button variant="primary" onClick={handleAddItem}>Add</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showNewListModal} onClose={() => setShowNewListModal(false)} title="New List">
+        <div className="space-y-4">
+          <Input
+            label="Title"
+            value={newListTitle}
+            onChange={(e) => setNewListTitle(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+            placeholder="Movie rankings, launch ideas, draft picks..."
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowNewListModal(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleCreateList}>Create</Button>
           </div>
         </div>
       </Modal>
