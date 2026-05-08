@@ -84,6 +84,7 @@ export function TierBoard({
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(list.title)
   const [copyingLink, setCopyingLink] = useState(false)
+  const [notice, setNotice] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -245,6 +246,12 @@ export function TierBoard({
   }
 
   const handleShare = async () => {
+    if (!list.ownerId || !list.isPublic) {
+      setNotice('Sharing needs a public cloud-saved list. Local lists stay private on this device for now.')
+      setShowSettingsMenu(false)
+      return
+    }
+
     const url = `${window.location.origin}/list/${list.id}`
     await navigator.clipboard.writeText(url)
     setCopyingLink(true)
@@ -340,9 +347,17 @@ export function TierBoard({
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
-                    onClick={() => { onTogglePublic(); setShowSettingsMenu(false) }}
+                    onClick={() => {
+                      if (!list.ownerId) {
+                        setNotice('Cloud sync is required before a list can be made public.')
+                        setShowSettingsMenu(false)
+                        return
+                      }
+                      onTogglePublic()
+                      setShowSettingsMenu(false)
+                    }}
                   >
-                    {list.isPublic ? 'Make Private' : 'Make Public'}
+                    {list.ownerId ? (list.isPublic ? 'Make Private' : 'Make Public') : 'Cloud Sync Required'}
                   </button>
                   <div className="border-t border-[#262626] my-1" />
                   <button
@@ -387,6 +402,19 @@ export function TierBoard({
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        {notice && (
+          <div className="mb-4 rounded-lg border border-[#f97316]/30 bg-[#f97316]/10 px-4 py-3 text-sm text-[#fed7aa] flex items-center justify-between gap-4">
+            <span>{notice}</span>
+            <button
+              type="button"
+              className="text-[#fdba74] hover:text-white"
+              onClick={() => setNotice('')}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
