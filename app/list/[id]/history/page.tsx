@@ -220,7 +220,7 @@ export default function HistoryPage() {
           <div className="flex-1">
             <div className="space-y-2">
               {sortedTiers.map((tier) => (
-                <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} />
+                <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />
               ))}
             </div>
 
@@ -228,7 +228,7 @@ export default function HistoryPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Item Bank</h2>
               <div className="grid grid-cols-6 gap-3">
                 {(itemsByTier['bank'] || []).map((item) => (
-                  <TierItem key={item.id} item={item} />
+                  <TierItem key={item.id} item={item} draggable={false} />
                 ))}
               </div>
             </div>

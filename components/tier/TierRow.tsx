@@ -17,6 +17,7 @@ interface TierRowProps {
   onItemClick?: (item: TierItemType) => void
   selectedItemId?: string | null
   onUpdateTier?: (tier: Tier) => void
+  readOnly?: boolean
 }
 
 const defaultColors = [
@@ -30,6 +31,7 @@ export function TierRow({
   onItemClick,
   selectedItemId,
   onUpdateTier,
+  readOnly = false,
 }: TierRowProps) {
   const [editingLabel, setEditingLabel] = useState(false)
   const [labelValue, setLabelValue] = useState(tier.label)
@@ -45,6 +47,7 @@ export function TierRow({
   } = useSortable({
     id: tier.id,
     data: { type: 'tier', tier },
+    disabled: readOnly,
   })
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -82,15 +85,17 @@ export function TierRow({
         style={{ backgroundColor: tier.color }}
       >
         <div className="flex-1 flex items-center justify-center">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="p-2 text-white/50 hover:text-white cursor-grab active:cursor-grabbing touch-none"
-            aria-label={`Move ${tier.label} tier`}
-          >
-            <GripVertical className="w-5 h-5" />
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              className="p-2 text-white/50 hover:text-white cursor-grab active:cursor-grabbing touch-none"
+              aria-label={`Move ${tier.label} tier`}
+            >
+              <GripVertical className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -109,23 +114,27 @@ export function TierRow({
             <span
               className="text-lg font-bold uppercase cursor-pointer hover:text-white/80"
               style={{ color: tier.color }}
-              onClick={() => setEditingLabel(true)}
+              onClick={() => {
+                if (!readOnly) setEditingLabel(true)
+              }}
             >
               {tier.label}
             </span>
           )}
           
-          <button
-            type="button"
-            className="p-1 text-[#525252] hover:text-white"
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            aria-label={`Change ${tier.label} tier color`}
-          >
-            <div
-              className="w-4 h-4 rounded-full border border-[#525252]"
-              style={{ backgroundColor: tier.color }}
-            />
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="p-1 text-[#525252] hover:text-white"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              aria-label={`Change ${tier.label} tier color`}
+            >
+              <div
+                className="w-4 h-4 rounded-full border border-[#525252]"
+                style={{ backgroundColor: tier.color }}
+              />
+            </button>
+          )}
 
           {showColorPicker && (
             <div className="absolute top-full left-0 mt-1 p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-10 flex flex-wrap gap-1 w-32">
@@ -165,6 +174,7 @@ export function TierRow({
                 item={item}
                 onClick={() => onItemClick?.(item)}
                 selected={selectedItemId === item.id}
+                draggable={!readOnly}
               />
             ))}
           </SortableContext>

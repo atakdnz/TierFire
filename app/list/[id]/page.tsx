@@ -123,7 +123,7 @@ export default function SharedListPage() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
             {sortedTiers.map((tier) => (
-              <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} />
+              <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />
             ))}
           </div>
           <DragOverlay>{activeItem ? <TierItem item={activeItem} overlay /> : null}</DragOverlay>

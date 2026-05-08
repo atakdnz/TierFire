@@ -10,6 +10,7 @@ interface TierItemProps {
   onClick?: () => void
   selected?: boolean
   overlay?: boolean
+  draggable?: boolean
 }
 
 const tierColors: Record<string, string> = {
@@ -21,7 +22,7 @@ const tierColors: Record<string, string> = {
   'tier-f': '#6b7280',
 }
 
-export function TierItem({ item, onClick, selected, overlay }: TierItemProps) {
+export function TierItem({ item, onClick, selected, overlay, draggable = true }: TierItemProps) {
   const {
     attributes,
     listeners,
@@ -32,6 +33,7 @@ export function TierItem({ item, onClick, selected, overlay }: TierItemProps) {
   } = useSortable({
     id: item.id,
     data: { type: 'item', item },
+    disabled: !draggable,
   })
 
   const style = {
@@ -50,7 +52,8 @@ export function TierItem({ item, onClick, selected, overlay }: TierItemProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        'w-[120px] h-[120px] rounded-lg cursor-grab active:cursor-grabbing',
+        'w-[120px] h-[120px] rounded-lg',
+        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
         'bg-[#262626] border-2 border-transparent transition-shadow duration-150 touch-none select-none',
         'flex flex-col items-center justify-center overflow-hidden',
         isDragging && 'opacity-40 shadow-2xl',
