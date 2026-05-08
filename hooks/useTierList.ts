@@ -24,7 +24,15 @@ type Action =
   | { type: 'ADD_ITEM'; listId: string; item: TierItem }
   | { type: 'UPDATE_ITEM'; listId: string; item: TierItem; previous: TierItem }
   | { type: 'REMOVE_ITEM'; listId: string; item: TierItem }
-  | { type: 'MOVE_ITEM'; listId: string; itemId: string; toTierId: string | null; order: number }
+  | {
+      type: 'MOVE_ITEM'
+      listId: string
+      itemId: string
+      fromTierId?: string | null
+      fromOrder?: number
+      toTierId: string | null
+      order: number
+    }
   | { type: 'REORDER_TIER'; listId: string; tierId: string; toOrder: number }
   | { type: 'UPDATE_TIER'; listId: string; tier: Tier; previous: Tier }
   | { type: 'UNDO' }
@@ -41,11 +49,36 @@ function applyAction(list: TierList, action: HistoryAction): TierList {
     case 'REMOVE_ITEM':
       return { ...list, items: list.items.filter(i => i.id !== action.item!.id), updatedAt: Date.now() }
     case 'MOVE_ITEM': {
-      const items = list.items.map(item =>
-        item.id === action.itemId
-          ? { ...item, tierId: action.toTierId ?? null, order: action.order ?? 0 }
-          : item
-      )
+      const movingItem = list.items.find((item) => item.id === action.itemId)
+      if (!movingItem) return list
+
+      const targetTierId = action.toTierId ?? null
+      const targetOrder = Math.max(0, action.order ?? 0)
+      const otherItems = list.items.filter((item) => item.id !== action.itemId)
+      const updatedMovingItem = { ...movingItem, tierId: targetTierId }
+
+      const items = [...otherItems, updatedMovingItem].map((item) => {
+        const peers = [...otherItems, updatedMovingItem]
+          .filter((peer) => peer.tierId === item.tierId)
+          .sort((a, b) => {
+            if (a.id === updatedMovingItem.id) return 1
+            if (b.id === updatedMovingItem.id) return -1
+            return a.order - b.order
+          })
+
+        const withoutMoving = peers.filter((peer) => peer.id !== updatedMovingItem.id)
+        const orderedPeers = item.tierId === targetTierId
+          ? [
+              ...withoutMoving.slice(0, Math.min(targetOrder, withoutMoving.length)),
+              updatedMovingItem,
+              ...withoutMoving.slice(Math.min(targetOrder, withoutMoving.length)),
+            ]
+          : peers
+
+        const order = orderedPeers.findIndex((peer) => peer.id === item.id)
+        return { ...item, order: order === -1 ? item.order : order }
+      })
+
       return { ...list, items, updatedAt: Date.now() }
     }
     case 'UPDATE_ITEM':
@@ -290,8 +323,20 @@ export function useTierList() {
   }, [])
 
   const moveItem = useCallback((listId: string, itemId: string, toTierId: string | null, order: number) => {
-    dispatch({ type: 'MOVE_ITEM', listId, itemId, toTierId, order })
-  }, [])
+    const list = state.lists.find((l) => l.id === listId)
+    const item = list?.items.find((i) => i.id === itemId)
+    if (!item) return
+    if (item.tierId === toTierId && item.order === order) return
+    dispatch({
+      type: 'MOVE_ITEM',
+      listId,
+      itemId,
+      fromTierId: item.tierId,
+      fromOrder: item.order,
+      toTierId,
+      order,
+    })
+  }, [state.lists])
 
   const reorderTier = useCallback((listId: string, tierId: string, toOrder: number) => {
     dispatch({ type: 'REORDER_TIER', listId, tierId, toOrder })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useSortable } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Pencil } from 'lucide-react'
@@ -67,6 +68,7 @@ export function TierRow({
   }
 
   const sortedItems = [...items].sort((a, b) => a.order - b.order)
+  const itemIds = sortedItems.map((item) => item.id)
 
   return (
     <div
@@ -154,14 +156,16 @@ export function TierRow({
               Drop items here
             </div>
           )}
-          {sortedItems.map((item) => (
-            <TierItem
-              key={item.id}
-              item={item}
-              onClick={() => onItemClick?.(item)}
-              selected={selectedItemId === item.id}
-            />
-          ))}
+          <SortableContext items={itemIds} strategy={rectSortingStrategy}>
+            {sortedItems.map((item) => (
+              <TierItem
+                key={item.id}
+                item={item}
+                onClick={() => onItemClick?.(item)}
+                selected={selectedItemId === item.id}
+              />
+            ))}
+          </SortableContext>
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -15,9 +15,8 @@ import {
   DragEndEvent,
   DragOverEvent,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Loader2 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User } from 'lucide-react'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
 import { TierItem } from './TierItem'
@@ -63,7 +62,6 @@ export function TierBoard({
   onTogglePublic,
 }: TierBoardProps) {
   const router = useRouter()
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [activeItem, setActiveItem] = useState<TierItemType | null>(null)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [tapMode, setTapMode] = useState(false)
@@ -96,7 +94,6 @@ export function TierBoard({
   const handleDragStart = (event: DragStartEvent) => {
     const item = list.items.find((i) => i.id === event.active.id)
     if (item) {
-      setActiveId(event.active.id as string)
       setActiveItem(item)
     }
   }
@@ -114,11 +111,13 @@ export function TierBoard({
     const tierIdsList = tierIds
     let targetTierId: string | null = null
 
-    if (tierIdsList.includes(overId)) {
+    if (overId === 'item-bank') {
+      targetTierId = null
+    } else if (tierIdsList.includes(overId)) {
       targetTierId = overId
     } else {
       const overItem = list.items.find((i) => i.id === overId)
-      if (overItem?.tierId) targetTierId = overItem.tierId
+      if (overItem) targetTierId = overItem.tierId
     }
 
     if (targetTierId !== activeItem.tierId) {
@@ -130,7 +129,6 @@ export function TierBoard({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) {
-      setActiveId(null)
       setActiveItem(null)
       return
     }
@@ -138,19 +136,22 @@ export function TierBoard({
     const activeId = active.id as string
     const overId = over.id as string
 
-    if (tierIds.includes(overId)) {
+    if (overId === 'item-bank') {
+      const targetItems = itemsByTier.bank || []
+      onMoveItem(activeId, null, targetItems.length)
+    } else if (tierIds.includes(overId)) {
       const targetItems = itemsByTier[overId] || []
       onMoveItem(activeId, overId, targetItems.length)
     } else {
       const overItem = list.items.find((i) => i.id === overId)
-      if (overItem && overItem.tierId) {
-        const targetItems = itemsByTier[overItem.tierId]
+      if (overItem) {
+        const targetKey = overItem.tierId || 'bank'
+        const targetItems = itemsByTier[targetKey] || []
         const currentIndex = targetItems.findIndex((i) => i.id === overId)
-        onMoveItem(activeId, overItem.tierId, currentIndex)
+        onMoveItem(activeId, overItem.tierId, currentIndex === -1 ? targetItems.length : currentIndex)
       }
     }
 
-    setActiveId(null)
     setActiveItem(null)
   }
 
@@ -317,22 +318,18 @@ export function TierBoard({
               </div>
             ))}
           </div>
+
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Item Bank</h2>
+              <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Add Item
+              </Button>
+            </div>
+            <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} />
+          </div>
           <DragOverlay>{activeItem ? <TierItem item={activeItem} overlay /> : null}</DragOverlay>
         </DndContext>
-
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Item Bank</h2>
-            <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Item
-            </Button>
-          </div>
-
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-            <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} />
-            <DragOverlay>{activeItem ? <TierItem item={activeItem} overlay /> : null}</DragOverlay>
-          </DndContext>
-        </div>
       </main>
 
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Item">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { TierItem as TierItemType } from '@/types'
 import { TierItem } from './TierItem'
 import { cn } from '@/lib/utils'
@@ -35,7 +35,7 @@ export function ItemBank({ items, onItemClick, selectedItemId }: ItemBankProps) 
           Add items to get started
         </div>
       ) : (
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        <SortableContext items={itemIds} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {sortedItems.map((item) => (
               <TierItem
