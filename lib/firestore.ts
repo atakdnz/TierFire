@@ -60,19 +60,34 @@ export async function getList(listId: string): Promise<TierList | null> {
 
 export async function updateList(listId: string, data: Partial<TierList>): Promise<void> {
   await updateDoc(doc(db, LISTS_COLLECTION, listId), {
-    ...data,
+    ...stripUndefined(data),
     updatedAt: Date.now(),
   })
 }
 
 export async function saveList(list: TierList): Promise<void> {
-  await setDoc(doc(db, LISTS_COLLECTION, list.id), {
-    ...list,
-  }, { merge: true })
+  const { id, ...data } = list
+  await setDoc(doc(db, LISTS_COLLECTION, id), stripUndefined(data), { merge: true })
 }
 
 export async function deleteList(listId: string): Promise<void> {
   await deleteDoc(doc(db, LISTS_COLLECTION, listId))
+}
+
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefined(item)) as T
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .map(([key, entryValue]) => [key, stripUndefined(entryValue)])
+    ) as T
+  }
+
+  return value
 }
 
 export async function getUserLists(userId: string): Promise<TierList[]> {
