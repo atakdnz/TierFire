@@ -1,55 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Flame, Plus, History, Users, ArrowRight } from 'lucide-react'
+import { Flame, Plus, History, Users } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
-
-const STORAGE_KEY = 'tierfire_lists'
-
-interface TierList {
-  id: string
-  title: string
-  createdAt: number
-}
 
 export default function Home() {
   const { user, loading } = useAuth()
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [guestLists, setGuestLists] = useState<TierList[]>([])
-  const [imported, setImported] = useState(false)
-
-  useEffect(() => {
-    if (user && !loading && !imported) {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored) {
-          const lists = JSON.parse(stored) as TierList[]
-          if (lists.length > 0) {
-            setGuestLists(lists)
-            setShowImportModal(true)
-          }
-        }
-      } catch {}
-    }
-  }, [user, loading, imported])
-
-  const handleImport = () => {
-    setImported(true)
-    setShowImportModal(false)
-  }
-
-  const handleSkip = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    setImported(true)
-    setShowImportModal(false)
-  }
 
   return (
-    <>
-      <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#0f0f0f]">
         <header className="border-b border-[#262626]">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -134,32 +94,6 @@ export default function Home() {
             <p>TierFire — Built with Next.js</p>
           </div>
         </footer>
-      </div>
-
-      <Modal open={showImportModal} onClose={handleSkip} title="Import Your Lists">
-        <div className="space-y-4">
-          <p className="text-[#a1a1a1]">
-            We found {guestLists.length} tier list{guestLists.length !== 1 ? 's' : ''} saved locally.
-            Import them to back them up to your account?
-          </p>
-          <div className="max-h-40 overflow-y-auto space-y-2">
-            {guestLists.map((list) => (
-              <div key={list.id} className="p-3 bg-[#262626] rounded-lg">
-                {list.title}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={handleSkip}>
-              Skip
-            </Button>
-            <Button variant="primary" onClick={handleImport}>
-              <ArrowRight className="w-4 h-4 mr-2" />
-              Import All
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
+    </div>
   )
 }

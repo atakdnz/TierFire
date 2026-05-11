@@ -8,7 +8,6 @@ import { useAuth } from './useAuth'
 
 const STORAGE_KEY = 'tierfire_lists'
 const ACTIVE_LIST_KEY = 'tierfire_active_list'
-const IMPORTED_USER_KEY = 'tierfire_imported_user'
 const MAX_HISTORY = 50
 
 interface State {
@@ -291,10 +290,16 @@ function readLocalLists(): TierList[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) return []
-    return JSON.parse(stored) as TierList[]
+    const lists = JSON.parse(stored) as TierList[]
+    return lists.filter((list) => !list.ownerId)
   } catch {
     return []
   }
+}
+
+function clearLocalDrafts() {
+  localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(ACTIVE_LIST_KEY)
 }
 
 function mergeListsById(primary: TierList[], secondary: TierList[]): TierList[] {
@@ -323,10 +328,9 @@ export function useTierList() {
 
   const loadGuestLists = useCallback(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const lists = readLocalLists()
       const activeId = localStorage.getItem(ACTIVE_LIST_KEY)
-      if (stored) {
-        const lists = JSON.parse(stored)
+      if (lists.length > 0) {
         dispatch({ type: 'LOAD', lists, activeListId: activeId || lists[0]?.id || null })
       } else {
         dispatch({ type: 'CREATE_LIST', title: 'My Tier List' })
@@ -346,11 +350,7 @@ export function useTierList() {
       async function loadCloudLists() {
         try {
           const cloudLists = await getUserLists(user!.uid)
-          const importedUserId = localStorage.getItem(IMPORTED_USER_KEY)
-          const shouldImportLocal = importedUserId !== user!.uid
-          const localLists = shouldImportLocal
-            ? readLocalLists().filter((list) => !list.ownerId)
-            : []
+          const localLists = readLocalLists()
           const importedLocalLists = localLists.map((list) => ({
             ...list,
             id: generateId(),
@@ -363,11 +363,11 @@ export function useTierList() {
 
           const mergedLists = mergeListsById(cloudLists, importedLocalLists)
 
-          if (shouldImportLocal) {
-            localStorage.setItem(IMPORTED_USER_KEY, user!.uid)
+          if (importedLocalLists.length > 0) {
             importedLocalLists.forEach((list) => {
               void saveList(list)
             })
+            clearLocalDrafts()
           }
 
           if (mergedLists.length === 0) {
