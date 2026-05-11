@@ -304,6 +304,16 @@ function mergeListsById(primary: TierList[], secondary: TierList[]): TierList[] 
   return Array.from(listsById.values()).sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
+function prepareOwnedListForSave(list: TierList, userId: string): TierList | null {
+  if (list.ownerId && list.ownerId !== userId) return null
+
+  return {
+    ...list,
+    ownerId: list.ownerId ?? userId,
+    isPublic: list.isPublic ?? false,
+  }
+}
+
 export function useTierList() {
   const { user, loading: authLoading } = useAuth()
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -338,10 +348,12 @@ export function useTierList() {
           const cloudLists = await getUserLists(user!.uid)
           const importedUserId = localStorage.getItem(IMPORTED_USER_KEY)
           const shouldImportLocal = importedUserId !== user!.uid
-          const localLists = shouldImportLocal ? readLocalLists() : []
+          const localLists = shouldImportLocal
+            ? readLocalLists().filter((list) => !list.ownerId)
+            : []
           const importedLocalLists = localLists.map((list) => ({
             ...list,
-            id: list.ownerId ? list.id : generateId(),
+            id: generateId(),
             ownerId: user!.uid,
             isPublic: false,
             updatedAt: Date.now(),
@@ -408,14 +420,10 @@ export function useTierList() {
       localStorage.setItem(ACTIVE_LIST_KEY, state.activeListId)
     }
 
-    const dirtyLists = state.lists.filter((list) => {
-      const listWithOwner = {
-        ...list,
-        ownerId: user.uid,
-        isPublic: list.isPublic ?? false,
-      }
-      return JSON.stringify(listWithOwner) !== lastSyncedByIdRef.current[list.id]
-    })
+    const dirtyLists = state.lists
+      .map((list) => prepareOwnedListForSave(list, user.uid))
+      .filter((list): list is TierList => Boolean(list))
+      .filter((list) => JSON.stringify(list) !== lastSyncedByIdRef.current[list.id])
 
     if (dirtyLists.length === 0) return
 
@@ -423,13 +431,8 @@ export function useTierList() {
 
     void Promise.all(
       dirtyLists.map(async (list) => {
-        const listWithOwner = {
-          ...list,
-          ownerId: user.uid,
-          isPublic: list.isPublic ?? false,
-        }
-        await saveList(listWithOwner)
-        return listWithOwner
+        await saveList(list)
+        return list
       })
     )
       .then((savedLists) => {

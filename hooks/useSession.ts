@@ -1,23 +1,27 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import {
   createSession,
   joinSession,
   leaveSession,
-  updateParticipantStatus,
   broadcastUpdate,
-  subscribeToSession,
-  subscribeToActivity,
   type Session,
 } from '@/lib/sessions'
 import { type TierList } from '@/types'
 
+type SessionActivity = {
+  action: string
+  uid: string
+  data: unknown
+  timestamp: string
+}
+
 export function useSession(list: TierList | null) {
   const { user } = useAuth()
   const [session, setSession] = useState<Session | null>(null)
-  const [activity, setActivity] = useState<any[]>([])
+  const [activity] = useState<SessionActivity[]>([])
   const [loading, setLoading] = useState(false)
 
   const createCollabSession = useCallback(async () => {
@@ -60,7 +64,7 @@ export function useSession(list: TierList | null) {
 
   const broadcastAction = useCallback(async (
     action: 'item_moved' | 'item_added' | 'item_removed' | 'tier_updated',
-    data: any
+    data: unknown
   ) => {
     if (!session || !user) return
     await broadcastUpdate(session.id, action, user.uid, data)

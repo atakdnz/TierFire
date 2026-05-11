@@ -8,9 +8,10 @@ interface ImageUploadProps {
   value?: string
   onChange: (url: string) => void
   className?: string
+  cloudRequired?: boolean
 }
 
-export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, className, cloudRequired = false }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -61,6 +62,11 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
         throw new Error('Upload failed')
       }
     } catch {
+      if (cloudRequired) {
+        setError('Cloudinary is required for signed-in lists. Check your Cloudinary environment variables.')
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = () => {
         if (typeof reader.result === 'string') {
@@ -118,7 +124,9 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
             <>
               <Upload className="w-8 h-8 text-[#525252] mb-2" />
               <span className="text-sm text-[#a1a1a1]">Click to upload</span>
-              <span className="text-xs text-[#525252] mt-1">PNG, JPG, GIF - max 5MB</span>
+              <span className="text-xs text-[#525252] mt-1">
+                {cloudRequired ? 'Cloudinary upload required' : 'PNG, JPG, GIF - max 5MB'}
+              </span>
             </>
           )}
         </div>

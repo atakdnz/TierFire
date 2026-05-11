@@ -3,17 +3,23 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Lock, Users, Plus } from 'lucide-react'
+import { ArrowLeft, Loader2, Lock } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { subscribeToSession, subscribeToActivity, type Session } from '@/lib/sessions'
-import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
+import { TierList as TierListType, TierItem as TierItemType } from '@/types'
 import { getList } from '@/lib/firestore'
 import { TierRow } from '@/components/tier/TierRow'
 import { TierItem } from '@/components/tier/TierItem'
 import { SessionPanel } from '@/components/collab/SessionPanel'
 import { ActivityFeed } from '@/components/collab/ActivityFeed'
-import { Button } from '@/components/ui/Button'
 import { useMemo } from 'react'
+
+type Activity = {
+  action: string
+  uid: string
+  data: unknown
+  timestamp: string
+}
 
 export default function SessionPage() {
   const params = useParams()
@@ -23,7 +29,7 @@ export default function SessionPage() {
 
   const [session, setSession] = useState<Session | null>(null)
   const [list, setList] = useState<TierListType | null>(null)
-  const [activities, setActivities] = useState<any[]>([])
+  const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
 
@@ -37,26 +43,39 @@ export default function SessionPage() {
 
     const unsubscribeSession = subscribeToSession(sessionId, (session) => {
       setSession(session)
-      setIsConnected(true)
+      setIsConnected(Boolean(session))
+      setLoading(false)
     })
 
     const unsubscribeActivity = subscribeToActivity(sessionId, (activities) => {
-      setActivities(activities)
+      setActivities(activities as Activity[])
     })
-
-    async function loadList() {
-      if (session) {
-        const listData = await getList(session.listId)
-        setList(listData)
-      }
-    }
-    loadList()
 
     return () => {
       unsubscribeSession()
       unsubscribeActivity()
     }
-  }, [sessionId, user, authLoading])
+  }, [sessionId, user, authLoading, router])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadList() {
+      if (!session) {
+        setList(null)
+        return
+      }
+
+      const listData = await getList(session.listId)
+      if (!cancelled) setList(listData)
+    }
+
+    void loadList()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session])
 
   const sortedTiers = useMemo(
     () => list ? [...list.tiers].sort((a, b) => a.order - b.order) : [],
@@ -79,7 +98,7 @@ export default function SessionPage() {
     router.push('/board')
   }
 
-  if (loading || authLoading || !session) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#f97316] animate-spin" />

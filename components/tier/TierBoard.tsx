@@ -5,7 +5,8 @@ import Link from 'next/link'
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -15,7 +16,7 @@ import {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save } from 'lucide-react'
+import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save, Clock } from 'lucide-react'
 import { type User as FirebaseUser } from 'firebase/auth'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
@@ -25,6 +26,11 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
 import { ImageUpload } from '../ui/ImageUpload'
+
+const collisionDetection = (args: Parameters<typeof pointerWithin>[0]) => {
+  const pointerCollisions = pointerWithin(args)
+  return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
+}
 
 interface TierBoardProps {
   user: FirebaseUser | null
@@ -47,6 +53,7 @@ interface TierBoardProps {
   onRedo: () => void
   onDeleteList: () => void
   onTogglePublic: () => void
+  onCreateSession?: () => Promise<string | null>
   onLogout: () => void
 }
 
@@ -71,6 +78,7 @@ export function TierBoard({
   onRedo,
   onDeleteList,
   onTogglePublic,
+  onCreateSession,
   onLogout,
 }: TierBoardProps) {
   const [activeItem, setActiveItem] = useState<TierItemType | null>(null)
@@ -89,6 +97,7 @@ export function TierBoard({
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(list.title)
   const [copyingLink, setCopyingLink] = useState(false)
+  const [creatingSession, setCreatingSession] = useState(false)
   const [notice, setNotice] = useState('')
 
   const sensors = useSensors(
@@ -247,6 +256,33 @@ export function TierBoard({
     setShowSettingsMenu(false)
   }
 
+  const handleCreateSession = async () => {
+    if (!user || !list.ownerId || !onCreateSession) {
+      setNotice('Sign in and use a cloud-saved list before creating a session.')
+      setShowSettingsMenu(false)
+      return
+    }
+
+    setCreatingSession(true)
+    setNotice('')
+    try {
+      const sessionId = await onCreateSession()
+      if (!sessionId) {
+        setNotice('Could not create a session for this list.')
+        return
+      }
+
+      const url = `${window.location.origin}/session/${sessionId}`
+      await navigator.clipboard.writeText(url)
+      setNotice('Session link copied to clipboard.')
+      setShowSettingsMenu(false)
+    } catch {
+      setNotice('Could not create a session. Check your Firestore configuration and try again.')
+    } finally {
+      setCreatingSession(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
       <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#262626]">
@@ -331,11 +367,31 @@ export function TierBoard({
                     ))}
                   </div>
                   <div className="border-t border-[#262626] my-1" />
+                  <Link
+                    href={list.ownerId ? `/list/${list.id}/history` : '#'}
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
+                    onClick={(event) => {
+                      if (!list.ownerId) {
+                        event.preventDefault()
+                        setNotice('History pages are available after cloud sync.')
+                      }
+                      setShowSettingsMenu(false)
+                    }}
+                  >
+                    <Clock className="w-4 h-4" /> History
+                  </Link>
                   <button
                     className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
                     onClick={handleShare}
                   >
                     <Share2 className="w-4 h-4" /> {copyingLink ? 'Copied!' : 'Share'}
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2 disabled:cursor-not-allowed disabled:text-[#525252]"
+                    onClick={handleCreateSession}
+                    disabled={creatingSession}
+                  >
+                    <User className="w-4 h-4" /> {creatingSession ? 'Creating Session...' : 'Create Session'}
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#262626] flex items-center gap-2"
@@ -407,7 +463,7 @@ export function TierBoard({
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div className="space-y-2">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
               {sortedTiers.map((tier) => (
@@ -497,6 +553,7 @@ export function TierBoard({
           />
           <ImageUpload
             value={list.items.find((i) => i.id === selectedItemId)?.imageUrl || ''}
+            cloudRequired={Boolean(user && list.ownerId)}
             onChange={(url) => {
               const item = list.items.find((i) => i.id === selectedItemId)
               if (item) onUpdateItem({ ...item, imageUrl: url })

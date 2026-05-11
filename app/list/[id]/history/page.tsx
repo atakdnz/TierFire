@@ -5,19 +5,23 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Clock, Play, Pause } from 'lucide-react'
 import { TierList as TierListType, TierItem as TierItemType } from '@/types'
-import { getList } from '@/lib/firestore'
-import { getListSnapshots, Snapshot } from '@/lib/snapshots'
+import { getList, saveList } from '@/lib/firestore'
+import { createSnapshot, getListSnapshots, Snapshot } from '@/lib/snapshots'
 import { TierRow } from '@/components/tier/TierRow'
 import { TierItem } from '@/components/tier/TierItem'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function HistoryPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const listId = params.id as string
 
   const [list, setList] = useState<TierListType | null>(null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [loading, setLoading] = useState(true)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreError, setRestoreError] = useState('')
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null)
   const [playing, setPlaying] = useState(false)
   const [playIndex, setPlayIndex] = useState(0)
@@ -63,8 +67,55 @@ export default function HistoryPage() {
     return () => clearInterval(interval)
   }, [playing, snapshots])
 
-  const displayItems = selectedSnapshot?.items || list?.items || []
-  const displayTiers = selectedSnapshot?.tiers || list?.tiers || []
+  const canRestore = Boolean(user && list?.ownerId === user.uid && selectedSnapshot)
+
+  const handleSelectSnapshot = (snapshot: Snapshot | null) => {
+    setSelectedSnapshot(snapshot)
+    setRestoreError('')
+    if (!snapshot) {
+      setPlayIndex(0)
+      return
+    }
+    const index = snapshots.findIndex((entry) => entry.id === snapshot.id)
+    setPlayIndex(index === -1 ? 0 : index)
+  }
+
+  const handleRestore = async () => {
+    if (!list || !selectedSnapshot || !canRestore) return
+
+    setRestoring(true)
+    setRestoreError('')
+
+    try {
+      await createSnapshot(list.id, list, 'Before restoring snapshot')
+      const restoredList: TierListType = {
+        ...list,
+        tiers: selectedSnapshot.tiers,
+        items: selectedSnapshot.items,
+        updatedAt: Date.now(),
+      }
+      await saveList(restoredList)
+      const nextSnapshots = await getListSnapshots(list.id)
+      setList(restoredList)
+      setSnapshots(nextSnapshots)
+      handleSelectSnapshot(null)
+    } catch (error) {
+      console.error('Failed to restore snapshot:', error)
+      setRestoreError('Could not restore this snapshot. Try again after refreshing.')
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  const displayItems = useMemo(
+    () => selectedSnapshot?.items ?? list?.items ?? [],
+    [selectedSnapshot, list]
+  )
+
+  const displayTiers = useMemo(
+    () => selectedSnapshot?.tiers ?? list?.tiers ?? [],
+    [selectedSnapshot, list]
+  )
 
   const sortedTiers = useMemo(
     () => [...displayTiers].sort((a, b) => a.order - b.order),
@@ -146,7 +197,7 @@ export default function HistoryPage() {
 
               <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                 <button
-                  onClick={() => setSelectedSnapshot(null)}
+                  onClick={() => handleSelectSnapshot(null)}
                   className={`w-full p-3 rounded-lg text-left transition-colors ${
                     !selectedSnapshot
                       ? 'bg-[#f97316]/20 border border-[#f97316]'
@@ -160,7 +211,7 @@ export default function HistoryPage() {
                 {snapshots.map((snapshot, index) => (
                   <button
                     key={snapshot.id}
-                    onClick={() => setSelectedSnapshot(snapshot)}
+                    onClick={() => handleSelectSnapshot(snapshot)}
                     className={`w-full p-3 rounded-lg text-left transition-colors ${
                       selectedSnapshot?.id === snapshot.id
                         ? 'bg-[#f97316]/20 border border-[#f97316]'
@@ -197,13 +248,13 @@ export default function HistoryPage() {
                     type="range"
                     min={0}
                     max={snapshots.length - 1}
-                    value={selectedSnapshot ? snapshots.findIndex(s => s.id === selectedSnapshot.id) : 0}
-                    onChange={(e) => setSelectedSnapshot(snapshots[parseInt(e.target.value)])}
+                    value={playIndex}
+                    onChange={(e) => handleSelectSnapshot(snapshots[parseInt(e.target.value)])}
                     className="w-full"
                   />
                   <div className="text-xs text-[#525252] mt-2 text-center">
                     {selectedSnapshot
-                      ? `${snapshots.findIndex(s => s.id === selectedSnapshot.id) + 1} / ${snapshots.length}`
+                      ? `${playIndex + 1} / ${snapshots.length}`
                       : 'Current'}
                   </div>
                 </div>
@@ -212,6 +263,34 @@ export default function HistoryPage() {
           </div>
 
           <div className="flex-1">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-white">
+                  {selectedSnapshot ? 'Snapshot Preview' : 'Current List'}
+                </h2>
+                <p className="text-sm text-[#737373]">
+                  {selectedSnapshot
+                    ? 'Read-only preview of the selected saved state.'
+                    : 'The current saved version of this list.'}
+                </p>
+              </div>
+              {selectedSnapshot && (
+                <button
+                  type="button"
+                  onClick={handleRestore}
+                  disabled={!canRestore || restoring}
+                  className="rounded-lg bg-[#f97316] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#ea580c] disabled:cursor-not-allowed disabled:bg-[#333] disabled:text-[#737373]"
+                  title={canRestore ? 'Restore this snapshot' : 'Only the list owner can restore snapshots'}
+                >
+                  {restoring ? 'Restoring...' : 'Restore'}
+                </button>
+              )}
+            </div>
+            {restoreError && (
+              <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                {restoreError}
+              </div>
+            )}
             <div className="space-y-2">
               {sortedTiers.map((tier) => (
                 <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />

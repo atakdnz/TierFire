@@ -4,6 +4,7 @@ import { useTierList } from '@/hooks/useTierList'
 import { TierBoard } from '@/components/tier/TierBoard'
 import { useAuth } from '@/hooks/useAuth'
 import { useHistory } from '@/hooks/useHistory'
+import { useSession } from '@/hooks/useSession'
 import { useEffect } from 'react'
 
 export default function BoardPage() {
@@ -31,6 +32,9 @@ export default function BoardPage() {
     snapshots,
     saveSnapshot,
   } = useHistory(activeList)
+  const {
+    createCollabSession,
+  } = useSession(activeList)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,6 +90,7 @@ export default function BoardPage() {
       onRedo={redo}
       onDeleteList={() => deleteList(activeList.id)}
       onTogglePublic={() => togglePublic(activeList.id)}
+      onCreateSession={createCollabSession}
       onLogout={async () => {
         await logout()
       }}

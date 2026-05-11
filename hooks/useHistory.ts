@@ -6,8 +6,8 @@ import { type TierList } from '@/types'
 import {
   createSnapshot,
   getItemTierHistory,
+  getListSnapshots,
   deleteSnapshot,
-  subscribeToSnapshots,
   type Snapshot,
 } from '@/lib/snapshots'
 import { generateId } from '@/lib/utils'
@@ -33,13 +33,24 @@ export function useHistory(list: TierList | null) {
       return
     }
 
+    let cancelled = false
     setLoading(true)
-    const unsubscribe = subscribeToSnapshots(list.id, (snapshots) => {
-      setSnapshots(snapshots)
-      setLoading(false)
-    })
+    getListSnapshots(list.id)
+      .then((snapshots) => {
+        if (cancelled) return
+        setSnapshots(snapshots)
+      })
+      .catch((error) => {
+        console.error('Failed to load snapshots:', error)
+        if (!cancelled) setSnapshots([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
-    return () => unsubscribe()
+    return () => {
+      cancelled = true
+    }
   }, [list, user])
 
   const saveSnapshot = useCallback(
@@ -48,6 +59,7 @@ export function useHistory(list: TierList | null) {
 
       if (user && list.ownerId) {
         await createSnapshot(list.id, list, note)
+        setSnapshots(await getListSnapshots(list.id))
         return
       }
 
@@ -76,6 +88,7 @@ export function useHistory(list: TierList | null) {
         return
       }
       await deleteSnapshot(list.id, snapshotId)
+      setSnapshots(await getListSnapshots(list.id))
     },
     [list, user]
   )
