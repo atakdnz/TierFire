@@ -75,32 +75,16 @@ export function TierRow({
       ref={setSortableRef}
       style={style}
       className={cn(
-        'flex min-h-[140px] rounded-lg overflow-hidden touch-manipulation',
+        'flex min-h-[88px] rounded-lg overflow-visible touch-manipulation',
         'transition-all duration-200',
         isDragging && 'opacity-50'
       )}
     >
       <div
-        className="w-20 flex-shrink-0 flex flex-col"
+        className="relative w-14 flex-shrink-0 rounded-l-lg flex flex-col items-center justify-between gap-1 p-2"
         style={{ backgroundColor: tier.color }}
       >
-        <div className="flex-1 flex items-center justify-center">
-          {!readOnly && (
-            <button
-              type="button"
-              {...attributes}
-              {...listeners}
-              className="p-2 text-white/50 hover:text-white cursor-grab active:cursor-grabbing touch-none"
-              aria-label={`Move ${tier.label} tier`}
-            >
-              <GripVertical className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 bg-[#1a1a1a] flex flex-col">
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#262626]">
+        <div className="flex items-center justify-center min-h-7">
           {editingLabel ? (
             <Input
               value={labelValue}
@@ -108,57 +92,70 @@ export function TierRow({
               onBlur={handleSaveLabel}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveLabel()}
               autoFocus
-              className="w-16 text-lg font-bold uppercase"
+              className="w-10 h-8 px-1 text-center text-lg font-bold uppercase"
             />
           ) : (
-            <span
-              className="text-lg font-bold uppercase cursor-pointer hover:text-white/80"
-              style={{ color: tier.color }}
+            <button
+              type="button"
+              className="text-xl font-bold uppercase leading-none text-white hover:text-white/80"
               onClick={() => {
                 if (!readOnly) setEditingLabel(true)
               }}
             >
               {tier.label}
-            </span>
-          )}
-          
-          {!readOnly && (
-            <button
-              type="button"
-              className="p-1 text-[#525252] hover:text-white"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              aria-label={`Change ${tier.label} tier color`}
-            >
-              <div
-                className="w-4 h-4 rounded-full border border-[#525252]"
-                style={{ backgroundColor: tier.color }}
-              />
             </button>
-          )}
-
-          {showColorPicker && (
-            <div className="absolute top-full left-0 mt-1 p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-10 flex flex-wrap gap-1 w-32">
-              {defaultColors.map((color) => (
-                <button
-                  type="button"
-                  key={color}
-                  className="w-6 h-6 rounded-full hover:scale-110 transition-transform"
-                  style={{ backgroundColor: color }}
-                  onClick={() => {
-                    onUpdateTier?.({ ...tier, color })
-                    setShowColorPicker(false)
-                  }}
-                />
-              ))}
-            </div>
           )}
         </div>
 
+        <div className="flex flex-col items-center gap-1">
+          {!readOnly && (
+            <button
+              type="button"
+              className="p-1 text-white/70 hover:text-white"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              aria-label={`Change ${tier.label} tier color`}
+            >
+              <div className="w-4 h-4 rounded-full border border-white/50 bg-white/20" />
+            </button>
+          )}
+
+          {!readOnly && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              className="p-1 text-white/60 hover:text-white cursor-grab active:cursor-grabbing touch-none"
+              aria-label={`Move ${tier.label} tier`}
+            >
+              <GripVertical className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {showColorPicker && (
+          <div className="absolute top-8 left-12 p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-20 flex flex-wrap gap-1 w-32">
+            {defaultColors.map((color) => (
+              <button
+                type="button"
+                key={color}
+                className="w-6 h-6 rounded-full hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+                onClick={() => {
+                  onUpdateTier?.({ ...tier, color })
+                  setShowColorPicker(false)
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 bg-[#1a1a1a] rounded-r-lg flex flex-col overflow-hidden">
         <div
           ref={setDroppableRef}
           className={cn(
-            'flex-1 flex flex-wrap gap-2 p-3 items-start content-start',
-            'min-h-[100px] transition-colors duration-200',
+            'flex-1 flex flex-wrap gap-2 p-2 items-start content-start',
+            'min-h-[88px] transition-colors duration-200',
             isOver && 'bg-[#262626]/50'
           )}
         >
