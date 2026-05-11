@@ -74,7 +74,7 @@ export function TierRow({
       ref={setSortableRef}
       style={style}
       className={cn(
-        'group flex min-h-[100px] overflow-visible touch-manipulation',
+        'group flex min-h-[104px] overflow-visible touch-manipulation',
         'transition-all duration-200',
         isDragging && 'opacity-50'
       )}
@@ -151,7 +151,7 @@ export function TierRow({
           ref={setDroppableRef}
           className={cn(
             'flex-1 flex flex-wrap gap-1 p-1 items-start content-start',
-            'min-h-[100px] transition-colors duration-200',
+            'min-h-[104px] transition-colors duration-200',
             isOver && 'bg-[#262626]/50'
           )}
         >
