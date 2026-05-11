@@ -28,8 +28,8 @@ export default function Home() {
                 </>
               )}
               {user && (
-                <Link href="/board">
-                  <Button variant="primary">Go to Board</Button>
+                <Link href="/dashboard">
+                  <Button variant="primary">Go to Dashboard</Button>
                 </Link>
               )}
             </div>
@@ -81,7 +81,7 @@ export default function Home() {
           </div>
 
           <div className="text-center">
-            <Link href="/board">
+            <Link href="/dashboard">
               <Button variant="primary" size="lg">
                 Start Creating
               </Button>

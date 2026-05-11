@@ -26,6 +26,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
 import { ImageUpload } from '../ui/ImageUpload'
+import { filenameToLabel, imageUrlToLabel, uploadImageFile } from '@/lib/clientImages'
 
 const collisionDetection = (args: Parameters<typeof pointerWithin>[0]) => {
   const pointerCollisions = pointerWithin(args)
@@ -303,6 +304,45 @@ export function TierBoard({
     }
   }
 
+  const addImageItem = (label: string, imageUrl: string) => {
+    onAddItem(label, imageUrl)
+  }
+
+  const handleImageDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const files = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith('image/'))
+
+    if (files.length > 0) {
+      setNotice(`Adding ${files.length} image${files.length === 1 ? '' : 's'}...`)
+      for (const file of files) {
+        try {
+          const result = await uploadImageFile(file, Boolean(user && list.ownerId))
+          addImageItem(filenameToLabel(file.name), result.url)
+          if (result.warning) setNotice(result.warning)
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : 'Could not add image.')
+        }
+      }
+      return
+    }
+
+    const uriList = event.dataTransfer.getData('text/uri-list')
+    const plainText = event.dataTransfer.getData('text/plain')
+    const html = event.dataTransfer.getData('text/html')
+    const htmlImageMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+    const url = [uriList, plainText, htmlImageMatch?.[1]]
+      .map((value) => value?.trim())
+      .find((value) => value && /^https?:\/\//i.test(value))
+
+    if (url) {
+      addImageItem(imageUrlToLabel(url), url)
+      setNotice('Image URL added to item bank.')
+      return
+    }
+
+    setNotice('Drop image files or image URLs into the item bank.')
+  }
+
   const handleCreateList = () => {
     const title = newListTitle.trim() || 'Untitled Tier List'
     onCreateList(title)
@@ -495,9 +535,12 @@ export function TierBoard({
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
-      <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#262626]">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+    <>
+      <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <div className="flex min-h-full bg-[#0f0f0f] w-full items-start">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <header className="sticky top-0 z-40 bg-[#0f0f0f] border-b border-[#262626] h-16 flex items-center">
+              <div className="w-full max-w-6xl mx-auto px-4 flex items-center gap-4">
           {editingTitle ? (
             <Input
               value={titleValue}
@@ -667,7 +710,7 @@ export function TierBoard({
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-4">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
         {notice && (
           <div className="mb-4 rounded-lg border border-[#f97316]/30 bg-[#f97316]/10 px-4 py-3 text-sm text-[#fed7aa] flex items-center justify-between gap-4">
             <span>{notice}</span>
@@ -681,9 +724,7 @@ export function TierBoard({
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div>
-            <div className="w-full space-y-px">
+        <div className="w-full space-y-px">
               <div className="space-y-px">
                 <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
                   {sortedTiers.map((tier) => (
@@ -695,32 +736,55 @@ export function TierBoard({
               </div>
             </div>
 
-            <div className={bankOnRight ? 'mt-4 lg:fixed lg:right-4 lg:top-20 lg:z-30 lg:mt-0 lg:w-[224px]' : 'mt-4'}>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-base font-semibold text-white">Item Bank</h2>
+            {!bankOnRight && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-semibold text-white">Item Bank</h2>
+                </div>
+                <ItemBank
+                  items={itemsByTier['bank'] || []}
+                  onItemClick={handleItemClick}
+                  selectedItemId={selectedItemId}
+                  onAddItem={() => setShowAddModal(true)}
+                  onImageDrop={handleImageDrop}
+                  compact={false}
+                />
               </div>
+            )}
+          </main>
+        </div>
+
+        {bankOnRight && (
+          <aside className="hidden lg:flex w-64 flex-shrink-0 border-l border-[#262626] bg-[#111111] sticky top-0 h-screen flex-col">
+            <div className="h-16 flex items-center px-6 border-b border-[#262626] flex-shrink-0">
+              <h2 className="text-base font-semibold text-white">Item Bank</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 pb-8">
               <ItemBank
                 items={itemsByTier['bank'] || []}
                 onItemClick={handleItemClick}
                 selectedItemId={selectedItemId}
                 onAddItem={() => setShowAddModal(true)}
-                compact={bankOnRight}
+                onImageDrop={handleImageDrop}
+                compact={true}
               />
             </div>
-          </div>
-          <DragOverlay>
-            {activeItem ? <TierItem item={activeItem} overlay /> : null}
-            {!activeItem && activeTier ? (
-              <div className="h-[56px] min-w-[180px] rounded-md border border-[#404040] bg-[#1a1a1a] shadow-2xl flex overflow-hidden">
-                <div className="w-12 flex items-center justify-center font-bold text-white" style={{ backgroundColor: activeTier.color }}>
-                  {activeTier.label}
-                </div>
-                <div className="flex-1 px-3 flex items-center text-xs text-[#a1a1a1]">Move tier</div>
+          </aside>
+        )}
+
+        <DragOverlay>
+          {activeItem ? <TierItem item={activeItem} overlay /> : null}
+          {!activeItem && activeTier ? (
+            <div className="h-[56px] min-w-[180px] rounded-md border border-[#404040] bg-[#1a1a1a] shadow-2xl flex overflow-hidden">
+              <div className="w-12 flex items-center justify-center font-bold text-white" style={{ backgroundColor: activeTier.color }}>
+                {activeTier.label}
               </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </main>
+              <div className="flex-1 px-3 flex items-center text-xs text-[#a1a1a1]">Move tier</div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </div>
+    </DndContext>
 
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Item">
         <div className="space-y-4">
@@ -851,6 +915,6 @@ export function TierBoard({
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   )
 }

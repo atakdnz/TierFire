@@ -99,6 +99,7 @@ Current behavior:
 - Drag/drop uses pointer-based collision detection for easier row dropping.
 - Item cards are `96x96` with slightly rounded corners.
 - Image items show a small bottom label overlay.
+- Item bank accepts dropped image files and browser image URLs, including images dragged from many web pages.
 - Tier color does not tint item cards or item images.
 - Item images can be repositioned by dragging inside the edit modal preview.
 - Item image zoom remains a slider.

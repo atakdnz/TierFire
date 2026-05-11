@@ -43,7 +43,7 @@ export default function RegisterPage() {
 
     try {
       await signUpWithEmail(email, password)
-      router.push('/board')
+      router.push('/dashboard')
     } catch (err: unknown) {
       setError(getAuthErrorMessage(err, 'Failed to create account'))
     } finally {
@@ -57,7 +57,7 @@ export default function RegisterPage() {
 
     try {
       await signInWithGoogle()
-      router.push('/board')
+      router.push('/dashboard')
     } catch (err: unknown) {
       setError(getAuthErrorMessage(err, 'Failed to sign in with Google'))
     } finally {

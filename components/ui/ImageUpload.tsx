@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { uploadImageFile } from '@/lib/clientImages'
 
 interface ImageUploadProps {
   value?: string
@@ -20,64 +21,15 @@ export function ImageUpload({ value, onChange, className, cloudRequired = false 
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be less than 5MB')
-      return
-    }
-
     setUploading(true)
     setError('')
 
     try {
-      const signResponse = await fetch('/api/cloudinary/upload', { method: 'POST' })
-      if (!signResponse.ok) throw new Error('Cloudinary signing is not configured')
-
-      const { timestamp, signature, cloudName, apiKey } = await signResponse.json()
-      if (!timestamp || !signature || !cloudName || !apiKey) {
-        throw new Error('Cloudinary signing response is incomplete')
-      }
-
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('api_key', apiKey)
-      formData.append('timestamp', timestamp.toString())
-      formData.append('signature', signature)
-      formData.append('folder', 'tierfire')
-
-      const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: 'POST', body: formData }
-      )
-
-      const result = await uploadResponse.json()
-
-      if (result.secure_url) {
-        onChange(result.secure_url)
-      } else {
-        throw new Error('Upload failed')
-      }
-    } catch {
-      if (cloudRequired) {
-        setError('Cloudinary is required for signed-in lists. Check your Cloudinary environment variables.')
-        return
-      }
-
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          onChange(reader.result)
-          setError('Using local image preview because Cloudinary is not configured.')
-        } else {
-          setError('Failed to upload image')
-        }
-      }
-      reader.onerror = () => setError('Failed to upload image')
-      reader.readAsDataURL(file)
+      const result = await uploadImageFile(file, cloudRequired)
+      onChange(result.url)
+      if (result.warning) setError(result.warning)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to upload image')
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''

@@ -1,0 +1,3 @@
+- scale image resolution
+- loading animation for uploading images. nothing shows up after dropping them in the ui currently.
+- drag and drop from google doesnt work.

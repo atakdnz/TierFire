@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Plus } from 'lucide-react'
@@ -12,10 +13,12 @@ interface ItemBankProps {
   onItemClick?: (item: TierItemType) => void
   selectedItemId?: string | null
   onAddItem?: () => void
+  onImageDrop?: (event: React.DragEvent<HTMLDivElement>) => void
   compact?: boolean
 }
 
-export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, compact = false }: ItemBankProps) {
+export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, onImageDrop, compact = false }: ItemBankProps) {
+  const [isNativeDropActive, setIsNativeDropActive] = useState(false)
   const { setNodeRef, isOver } = useDroppable({
     id: 'item-bank',
     data: { type: 'bank' },
@@ -27,17 +30,28 @@ export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, compac
   return (
     <div
       ref={setNodeRef}
+      onDragEnter={() => {
+        if (onImageDrop) setIsNativeDropActive(true)
+      }}
+      onDragOver={(event) => {
+        if (onImageDrop) event.preventDefault()
+      }}
+      onDragLeave={() => setIsNativeDropActive(false)}
+      onDrop={(event) => {
+        setIsNativeDropActive(false)
+        onImageDrop?.(event)
+      }}
       className={cn(
         'min-h-[96px] p-2 rounded-lg border border-[#262626]',
         compact && 'lg:h-[calc(100vh-118px)] lg:min-h-0 lg:overflow-y-auto',
         'transition-colors duration-200',
-        isOver && 'border-[#f97316] bg-[#f97316]/5'
+        (isOver || isNativeDropActive) && 'border-[#f97316] bg-[#f97316]/5'
       )}
     >
       <SortableContext items={itemIds} strategy={rectSortingStrategy}>
         <div className={cn(
-          'grid gap-2',
-          compact ? 'grid-cols-2' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10'
+          'grid',
+          compact ? 'grid-cols-2 gap-4' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2'
         )}>
           <button
             type="button"
@@ -50,9 +64,10 @@ export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, compac
           {sortedItems.length === 0 ? (
             <div className={cn(
               'flex h-[96px] items-center text-sm text-[#525252]',
+              isNativeDropActive && 'text-[#fdba74]',
               compact ? 'col-span-1' : 'col-span-3 sm:col-span-5 md:col-span-7 lg:col-span-9'
             )}>
-              Add items to get started
+              {isNativeDropActive ? 'Drop images to add them' : 'Add items to get started'}
             </div>
           ) : (
             sortedItems.map((item) => (
