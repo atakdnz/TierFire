@@ -16,7 +16,7 @@ import {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save, Clock } from 'lucide-react'
+import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save, Clock, PanelRight } from 'lucide-react'
 import { type User as FirebaseUser } from 'firebase/auth'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
@@ -33,6 +33,7 @@ const collisionDetection = (args: Parameters<typeof pointerWithin>[0]) => {
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+const BANK_LAYOUT_KEY = 'tierfire_bank_layout'
 
 interface TierBoardProps {
   user: FirebaseUser | null
@@ -102,6 +103,10 @@ export function TierBoard({
   const [titleValue, setTitleValue] = useState(list.title)
   const [copyingLink, setCopyingLink] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
+  const [bankOnRight, setBankOnRight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(BANK_LAYOUT_KEY) === 'right'
+  })
   const [notice, setNotice] = useState('')
   const imageDragRef = useRef<{
     pointerId: number
@@ -132,6 +137,14 @@ export function TierBoard({
   const findItemContainer = (id: UniqueIdentifier): string | null => {
     const item = list.items.find((i) => i.id === id)
     return item?.tierId ?? null
+  }
+
+  const toggleBankLayout = () => {
+    setBankOnRight((current) => {
+      const next = !current
+      localStorage.setItem(BANK_LAYOUT_KEY, next ? 'right' : 'bottom')
+      return next
+    })
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -373,6 +386,14 @@ export function TierBoard({
               <Save className="w-4 h-4" />
               <span className="hidden lg:inline ml-1">{snapshotCount}</span>
             </Button>
+            <Button
+              variant={bankOnRight ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={toggleBankLayout}
+              title={bankOnRight ? 'Move item bank below tiers' : 'Move item bank to the right'}
+            >
+              <PanelRight className="w-4 h-4" />
+            </Button>
 
             <Button variant={tapMode ? 'primary' : 'secondary'} size="sm" onClick={() => setTapMode(!tapMode)} className="md:hidden">
               {tapMode ? 'Tap Mode ON' : 'Tap Mode'}
@@ -512,21 +533,29 @@ export function TierBoard({
         )}
 
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className="space-y-px">
-            <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
-              {sortedTiers.map((tier) => (
-                <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
-                  <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
-                </div>
-              ))}
-            </SortableContext>
-          </div>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-semibold text-white">Item Bank</h2>
+          <div className={bankOnRight ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_224px]' : ''}>
+            <div className="space-y-px">
+              <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
+                {sortedTiers.map((tier) => (
+                  <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
+                    <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
+                  </div>
+                ))}
+              </SortableContext>
             </div>
-            <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onAddItem={() => setShowAddModal(true)} />
+
+            <div className={bankOnRight ? 'mt-4 lg:sticky lg:top-20 lg:mt-0 lg:self-start' : 'mt-4'}>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-semibold text-white">Item Bank</h2>
+              </div>
+              <ItemBank
+                items={itemsByTier['bank'] || []}
+                onItemClick={handleItemClick}
+                selectedItemId={selectedItemId}
+                onAddItem={() => setShowAddModal(true)}
+                compact={bankOnRight}
+              />
+            </div>
           </div>
           <DragOverlay>
             {activeItem ? <TierItem item={activeItem} overlay /> : null}

@@ -12,9 +12,10 @@ interface ItemBankProps {
   onItemClick?: (item: TierItemType) => void
   selectedItemId?: string | null
   onAddItem?: () => void
+  compact?: boolean
 }
 
-export function ItemBank({ items, onItemClick, selectedItemId, onAddItem }: ItemBankProps) {
+export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, compact = false }: ItemBankProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'item-bank',
     data: { type: 'bank' },
@@ -28,12 +29,16 @@ export function ItemBank({ items, onItemClick, selectedItemId, onAddItem }: Item
       ref={setNodeRef}
       className={cn(
         'min-h-[96px] p-2 rounded-lg border-2 border-dashed border-[#262626]',
+        compact && 'max-h-[calc(100vh-190px)] overflow-y-auto',
         'transition-colors duration-200',
         isOver && 'border-[#f97316] bg-[#f97316]/5'
       )}
     >
       <SortableContext items={itemIds} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+        <div className={cn(
+          'grid gap-2',
+          compact ? 'grid-cols-2' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10'
+        )}>
           <button
             type="button"
             onClick={onAddItem}
@@ -43,7 +48,10 @@ export function ItemBank({ items, onItemClick, selectedItemId, onAddItem }: Item
             <Plus className="h-7 w-7" />
           </button>
           {sortedItems.length === 0 ? (
-            <div className="col-span-3 flex h-[96px] items-center text-sm text-[#525252] sm:col-span-5 md:col-span-7 lg:col-span-9">
+            <div className={cn(
+              'flex h-[96px] items-center text-sm text-[#525252]',
+              compact ? 'col-span-1' : 'col-span-3 sm:col-span-5 md:col-span-7 lg:col-span-9'
+            )}>
               Add items to get started
             </div>
           ) : (
