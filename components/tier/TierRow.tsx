@@ -155,11 +155,6 @@ export function TierRow({
             isOver && 'bg-[#262626]/50'
           )}
         >
-          {sortedItems.length === 0 && (
-            <div className="w-full h-full flex items-center justify-center text-[#525252] text-xs">
-              Drop items here
-            </div>
-          )}
           <SortableContext items={itemIds} strategy={rectSortingStrategy}>
             {sortedItems.map((item) => (
               <TierItem

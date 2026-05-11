@@ -67,6 +67,11 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
               transform: `scale(${imageScale})`,
             }}
           />
+          <div className="absolute inset-x-0 bottom-0 bg-black/65 px-1 py-0.5">
+            <div className="truncate text-center text-[10px] font-medium leading-tight text-white">
+              {item.label}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center p-1.5">
