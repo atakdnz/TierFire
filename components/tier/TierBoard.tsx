@@ -460,7 +460,7 @@ export function TierBoard({
         )}
 
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className="space-y-1.5">
+          <div className="space-y-px">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
               {sortedTiers.map((tier) => (
                 <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
@@ -470,7 +470,7 @@ export function TierBoard({
             </SortableContext>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base font-semibold text-white">Item Bank</h2>
               <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>

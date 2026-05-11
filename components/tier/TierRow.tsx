@@ -4,7 +4,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
 import { TierItem as TierItemType, Tier } from '@/types'
 import { TierItem } from './TierItem'
 import { cn } from '@/lib/utils'
@@ -75,16 +74,23 @@ export function TierRow({
       ref={setSortableRef}
       style={style}
       className={cn(
-        'flex min-h-[72px] rounded-md overflow-visible touch-manipulation',
+        'group flex min-h-[100px] overflow-visible touch-manipulation',
         'transition-all duration-200',
         isDragging && 'opacity-50'
       )}
     >
       <div
-        className="relative w-12 flex-shrink-0 rounded-l-md flex flex-col items-center justify-between gap-1 p-1.5"
+        className="relative w-[64px] flex-shrink-0 flex items-center justify-center"
         style={{ backgroundColor: tier.color }}
       >
-        <div className="flex items-center justify-center min-h-6">
+        <div
+          {...(!readOnly ? attributes : {})}
+          {...(!readOnly ? listeners : {})}
+          className={cn(
+            'absolute inset-0 flex items-center justify-center',
+            !readOnly && 'cursor-grab active:cursor-grabbing touch-none'
+          )}
+        >
           {editingLabel ? (
             <Input
               value={labelValue}
@@ -92,13 +98,15 @@ export function TierRow({
               onBlur={handleSaveLabel}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveLabel()}
               autoFocus
-              className="w-9 h-7 px-1 text-center text-base font-bold uppercase"
+              className="w-12 h-9 px-1 text-center text-lg font-bold uppercase"
             />
           ) : (
             <button
               type="button"
-              className="text-lg font-bold uppercase leading-none text-white hover:text-white/80"
-              onClick={() => {
+              className="z-10 px-1 text-2xl font-bold uppercase leading-none text-white hover:text-white/85"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
                 if (!readOnly) setEditingLabel(true)
               }}
             >
@@ -107,33 +115,21 @@ export function TierRow({
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          {!readOnly && (
-            <button
-              type="button"
-              className="p-1 text-white/70 hover:text-white"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              aria-label={`Change ${tier.label} tier color`}
-            >
-              <div className="w-3.5 h-3.5 rounded-full border border-white/50 bg-white/20" />
-            </button>
-          )}
-
-          {!readOnly && (
-            <button
-              type="button"
-              {...attributes}
-              {...listeners}
-              className="p-0.5 text-white/60 hover:text-white cursor-grab active:cursor-grabbing touch-none"
-              aria-label={`Move ${tier.label} tier`}
-            >
-              <GripVertical className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {!readOnly && (
+          <button
+            type="button"
+            className="absolute bottom-1 right-1 z-10 h-3 w-3 rounded-full border border-white/35 bg-white/15 opacity-0 transition-opacity hover:bg-white/30 group-hover:opacity-60 focus:opacity-100"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              setShowColorPicker(!showColorPicker)
+            }}
+            aria-label={`Change ${tier.label} tier color`}
+          />
+        )}
 
         {showColorPicker && (
-          <div className="absolute top-8 left-10 p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-20 flex flex-wrap gap-1 w-32">
+          <div className="absolute top-2 left-[68px] p-2 bg-[#1a1a1a] rounded-lg border border-[#262626] shadow-xl z-20 flex flex-wrap gap-1 w-32">
             {defaultColors.map((color) => (
               <button
                 type="button"
@@ -150,12 +146,12 @@ export function TierRow({
         )}
       </div>
 
-      <div className="flex-1 bg-[#1a1a1a] rounded-r-md flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#1a1a1a] flex flex-col overflow-hidden">
         <div
           ref={setDroppableRef}
           className={cn(
-            'flex-1 flex flex-wrap gap-1.5 p-1.5 items-start content-start',
-            'min-h-[72px] transition-colors duration-200',
+            'flex-1 flex flex-wrap gap-1 p-1 items-start content-start',
+            'min-h-[100px] transition-colors duration-200',
             isOver && 'bg-[#262626]/50'
           )}
         >

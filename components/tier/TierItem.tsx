@@ -52,7 +52,7 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
       {...listeners}
       onClick={onClick}
       className={cn(
-        'w-[88px] h-[88px] rounded-md',
+        'w-[96px] h-[96px]',
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
         'bg-[#262626] border-2 border-transparent transition-shadow duration-150 touch-none select-none',
         'flex flex-col items-center justify-center overflow-hidden',
@@ -80,7 +80,7 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
           className="w-full h-full flex items-center justify-center p-1.5"
           style={overlayBg ? { backgroundColor: `${overlayBg}30` } : {}}
         >
-          <span className="text-xs text-white text-center font-medium line-clamp-3">
+          <span className="text-sm text-white text-center font-medium line-clamp-3">
             {item.label}
           </span>
         </div>
