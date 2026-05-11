@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, type PointerEvent } from 'react'
 import Link from 'next/link'
 import {
   DndContext,
@@ -31,6 +31,8 @@ const collisionDetection = (args: Parameters<typeof pointerWithin>[0]) => {
   const pointerCollisions = pointerWithin(args)
   return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
 }
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 interface TierBoardProps {
   user: FirebaseUser | null
@@ -101,6 +103,13 @@ export function TierBoard({
   const [copyingLink, setCopyingLink] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
   const [notice, setNotice] = useState('')
+  const imageDragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    startPositionX: number
+    startPositionY: number
+  } | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -243,6 +252,41 @@ export function TierBoard({
 
   const updateSelectedItem = (patch: Partial<TierItemType>) => {
     if (selectedItem) onUpdateItem({ ...selectedItem, ...patch })
+  }
+
+  const handleImagePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!selectedItem?.imageUrl) return
+
+    event.currentTarget.setPointerCapture(event.pointerId)
+    imageDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPositionX: selectedItem.imagePositionX ?? 50,
+      startPositionY: selectedItem.imagePositionY ?? 50,
+    }
+  }
+
+  const handleImagePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = imageDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId || !selectedItem) return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const scale = selectedItem.imageScale ?? 1
+    const deltaX = ((event.clientX - drag.startX) / rect.width) * 100 / scale
+    const deltaY = ((event.clientY - drag.startY) / rect.height) * 100 / scale
+
+    updateSelectedItem({
+      imageFit: 'cover',
+      imagePositionX: clamp(drag.startPositionX - deltaX, 0, 100),
+      imagePositionY: clamp(drag.startPositionY - deltaY, 0, 100),
+    })
+  }
+
+  const handleImagePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (imageDragRef.current?.pointerId === event.pointerId) {
+      imageDragRef.current = null
+    }
   }
 
   const handleSaveTitle = () => {
@@ -481,11 +525,8 @@ export function TierBoard({
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base font-semibold text-white">Item Bank</h2>
-              <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
-                <Plus className="w-4 h-4 mr-1" /> Add Item
-              </Button>
             </div>
-            <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} />
+            <ItemBank items={itemsByTier['bank'] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onAddItem={() => setShowAddModal(true)} />
           </div>
           <DragOverlay>
             {activeItem ? <TierItem item={activeItem} overlay /> : null}
@@ -567,42 +608,26 @@ export function TierBoard({
           />
           {selectedItem?.imageUrl && (
             <div className="space-y-3 rounded-lg border border-[#262626] bg-[#141414] p-3">
-              <div className="aspect-square w-32 overflow-hidden bg-[#262626]">
+              <div
+                className="aspect-square w-40 cursor-grab touch-none overflow-hidden rounded-md bg-[#262626] active:cursor-grabbing"
+                onPointerDown={handleImagePointerDown}
+                onPointerMove={handleImagePointerMove}
+                onPointerUp={handleImagePointerEnd}
+                onPointerCancel={handleImagePointerEnd}
+              >
                 <img
                   src={selectedItem.imageUrl}
                   alt={selectedItem.label}
-                  className="h-full w-full"
+                  className="h-full w-full select-none pointer-events-none"
                   style={{
                     objectFit: selectedItem.imageFit ?? 'cover',
                     objectPosition: `${selectedItem.imagePositionX ?? 50}% ${selectedItem.imagePositionY ?? 50}%`,
                     transform: `scale(${selectedItem.imageScale ?? 1})`,
                   }}
+                  draggable={false}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="space-y-1 text-xs text-[#a1a1a1]">
-                  X Position
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={selectedItem.imagePositionX ?? 50}
-                    onChange={(event) => updateSelectedItem({ imagePositionX: Number(event.target.value) })}
-                    className="w-full"
-                  />
-                </label>
-                <label className="space-y-1 text-xs text-[#a1a1a1]">
-                  Y Position
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={selectedItem.imagePositionY ?? 50}
-                    onChange={(event) => updateSelectedItem({ imagePositionY: Number(event.target.value) })}
-                    className="w-full"
-                  />
-                </label>
-              </div>
+              <p className="text-xs text-[#737373]">Drag the image to reposition it.</p>
               <label className="space-y-1 text-xs text-[#a1a1a1]">
                 Zoom
                 <input

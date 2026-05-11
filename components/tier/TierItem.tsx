@@ -46,7 +46,7 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
       {...listeners}
       onClick={onClick}
       className={cn(
-        'w-[96px] h-[96px]',
+        'w-[96px] h-[96px] rounded-md',
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
         'bg-[#262626] border-2 border-transparent transition-shadow duration-150 touch-none select-none',
         'flex flex-col items-center justify-center overflow-hidden',
