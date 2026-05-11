@@ -16,7 +16,7 @@ import {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save, Clock, PanelRight } from 'lucide-react'
+import { Plus, Undo2, Redo2, MoreVertical, Share2, LogOut, User, Save, Clock, PanelRight, Download } from 'lucide-react'
 import { type User as FirebaseUser } from 'firebase/auth'
 import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
 import { TierRow } from './TierRow'
@@ -34,6 +34,72 @@ const collisionDetection = (args: Parameters<typeof pointerWithin>[0]) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const BANK_LAYOUT_KEY = 'tierfire_bank_layout'
+const EXPORT_ITEM_SIZE = 96
+const EXPORT_ROW_PADDING = 4
+const EXPORT_TIER_WIDTH = 64
+const EXPORT_BOARD_WIDTH = 1200
+
+function loadCanvasImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => resolve(image)
+    image.onerror = () => resolve(null)
+    image.src = src
+  })
+}
+
+function drawFittedImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  item: TierItemType,
+  x: number,
+  y: number,
+  size: number
+) {
+  const fit = item.imageFit ?? 'cover'
+  const scale = item.imageScale ?? 1
+  const positionX = (item.imagePositionX ?? 50) / 100
+  const positionY = (item.imagePositionY ?? 50) / 100
+  const imageRatio = image.naturalWidth / image.naturalHeight
+  const boxRatio = 1
+  let drawWidth = size
+  let drawHeight = size
+
+  if (fit === 'contain') {
+    if (imageRatio > boxRatio) drawHeight = size / imageRatio
+    else drawWidth = size * imageRatio
+  } else if (imageRatio > boxRatio) {
+    drawWidth = size * imageRatio
+  } else {
+    drawHeight = size / imageRatio
+  }
+
+  drawWidth *= scale
+  drawHeight *= scale
+
+  const drawX = x + (size - drawWidth) * positionX
+  const drawY = y + (size - drawHeight) * positionY
+
+  context.save()
+  context.beginPath()
+  context.rect(x, y, size, size)
+  context.clip()
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+  context.restore()
+}
+
+function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
+  const link = document.createElement('a')
+  link.download = filename
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+function filenameFromTitle(title: string) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  return `${slug || 'tierfire-list'}.png`
+}
 
 interface TierBoardProps {
   user: FirebaseUser | null
@@ -321,6 +387,86 @@ export function TierBoard({
     setShowSettingsMenu(false)
   }
 
+  const handleExportPng = async () => {
+    setNotice('Preparing PNG export...')
+
+    const rowItemCapacity = Math.max(1, Math.floor((EXPORT_BOARD_WIDTH - EXPORT_TIER_WIDTH - EXPORT_ROW_PADDING * 2) / (EXPORT_ITEM_SIZE + EXPORT_ROW_PADDING)))
+    const rowHeights = sortedTiers.map((tier) => {
+      const itemCount = itemsByTier[tier.id]?.length ?? 0
+      const itemRows = Math.max(1, Math.ceil(itemCount / rowItemCapacity))
+      return EXPORT_ROW_PADDING + itemRows * EXPORT_ITEM_SIZE + (itemRows - 1) * EXPORT_ROW_PADDING + EXPORT_ROW_PADDING
+    })
+    const titleHeight = 56
+    const height = titleHeight + rowHeights.reduce((sum, rowHeight) => sum + rowHeight, 0)
+    const canvas = document.createElement('canvas')
+    const pixelRatio = 2
+    canvas.width = EXPORT_BOARD_WIDTH * pixelRatio
+    canvas.height = height * pixelRatio
+    canvas.style.width = `${EXPORT_BOARD_WIDTH}px`
+    canvas.style.height = `${height}px`
+
+    const context = canvas.getContext('2d')
+    if (!context) return
+
+    context.scale(pixelRatio, pixelRatio)
+    context.fillStyle = '#0f0f0f'
+    context.fillRect(0, 0, EXPORT_BOARD_WIDTH, height)
+    context.fillStyle = '#ffffff'
+    context.font = '700 24px Arial, sans-serif'
+    context.fillText(list.title, 16, 36)
+
+    const imageCache = new Map<string, HTMLImageElement | null>()
+    for (const item of list.items) {
+      if (item.imageUrl && !imageCache.has(item.imageUrl)) {
+        imageCache.set(item.imageUrl, await loadCanvasImage(item.imageUrl))
+      }
+    }
+
+    let y = titleHeight
+    sortedTiers.forEach((tier, tierIndex) => {
+      const rowHeight = rowHeights[tierIndex]
+      const items = itemsByTier[tier.id] || []
+      context.fillStyle = tier.color
+      context.fillRect(0, y, EXPORT_TIER_WIDTH, rowHeight)
+      context.fillStyle = '#ffffff'
+      context.font = '700 28px Arial, sans-serif'
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText(tier.label, EXPORT_TIER_WIDTH / 2, y + rowHeight / 2)
+
+      context.fillStyle = '#1a1a1a'
+      context.fillRect(EXPORT_TIER_WIDTH, y, EXPORT_BOARD_WIDTH - EXPORT_TIER_WIDTH, rowHeight)
+      context.strokeStyle = '#0f0f0f'
+      context.lineWidth = 1
+      context.strokeRect(0, y, EXPORT_BOARD_WIDTH, rowHeight)
+
+      items.forEach((item, itemIndex) => {
+        const column = itemIndex % rowItemCapacity
+        const row = Math.floor(itemIndex / rowItemCapacity)
+        const itemX = EXPORT_TIER_WIDTH + EXPORT_ROW_PADDING + column * (EXPORT_ITEM_SIZE + EXPORT_ROW_PADDING)
+        const itemY = y + EXPORT_ROW_PADDING + row * (EXPORT_ITEM_SIZE + EXPORT_ROW_PADDING)
+
+        context.fillStyle = '#262626'
+        context.fillRect(itemX, itemY, EXPORT_ITEM_SIZE, EXPORT_ITEM_SIZE)
+        const image = item.imageUrl ? imageCache.get(item.imageUrl) : null
+        if (image) drawFittedImage(context, image, item, itemX, itemY, EXPORT_ITEM_SIZE)
+
+        context.fillStyle = item.imageUrl ? 'rgba(0, 0, 0, 0.65)' : 'transparent'
+        if (item.imageUrl) context.fillRect(itemX, itemY + EXPORT_ITEM_SIZE - 16, EXPORT_ITEM_SIZE, 16)
+        context.fillStyle = '#ffffff'
+        context.font = item.imageUrl ? '500 10px Arial, sans-serif' : '600 14px Arial, sans-serif'
+        context.textAlign = 'center'
+        context.textBaseline = item.imageUrl ? 'middle' : 'middle'
+        context.fillText(item.label, itemX + EXPORT_ITEM_SIZE / 2, item.imageUrl ? itemY + EXPORT_ITEM_SIZE - 8 : itemY + EXPORT_ITEM_SIZE / 2, EXPORT_ITEM_SIZE - 8)
+      })
+
+      y += rowHeight
+    })
+
+    downloadCanvas(canvas, filenameFromTitle(list.title))
+    setNotice('PNG exported.')
+  }
+
   const handleCreateSession = async () => {
     if (!user || !list.ownerId || !onCreateSession) {
       setNotice('Sign in and use a cloud-saved list before creating a session.')
@@ -385,6 +531,9 @@ export function TierBoard({
             <Button variant="ghost" size="sm" onClick={() => setShowSnapshotModal(true)} title="Save snapshot">
               <Save className="w-4 h-4" />
               <span className="hidden lg:inline ml-1">{snapshotCount}</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleExportPng} title="Export PNG">
+              <Download className="w-4 h-4" />
             </Button>
             <Button
               variant={bankOnRight ? 'primary' : 'ghost'}
@@ -518,7 +667,7 @@ export function TierBoard({
         </div>
       </header>
 
-      <main className={bankOnRight ? 'px-4 py-4' : 'max-w-6xl mx-auto px-4 py-4'}>
+      <main className="max-w-6xl mx-auto px-4 py-4">
         {notice && (
           <div className="mb-4 rounded-lg border border-[#f97316]/30 bg-[#f97316]/10 px-4 py-3 text-sm text-[#fed7aa] flex items-center justify-between gap-4">
             <span>{notice}</span>
@@ -533,8 +682,8 @@ export function TierBoard({
         )}
 
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className={bankOnRight ? 'lg:flex lg:items-start lg:justify-center lg:gap-4' : ''}>
-            <div className="w-full max-w-6xl space-y-px">
+          <div>
+            <div className="w-full space-y-px">
               <div className="space-y-px">
                 <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
                   {sortedTiers.map((tier) => (
@@ -546,7 +695,7 @@ export function TierBoard({
               </div>
             </div>
 
-            <div className={bankOnRight ? 'mt-4 lg:sticky lg:top-20 lg:mt-0 lg:w-[224px] lg:flex-none lg:self-start' : 'mt-4'}>
+            <div className={bankOnRight ? 'mt-4 lg:fixed lg:right-4 lg:top-20 lg:z-30 lg:mt-0 lg:w-[224px]' : 'mt-4'}>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-semibold text-white">Item Bank</h2>
               </div>
