@@ -287,10 +287,6 @@ export function TierBoard({
     <div className="min-h-screen bg-[#0f0f0f]">
       <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#262626]">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-white hidden md:block">{list.title}</span>
-          </Link>
-
           {editingTitle ? (
             <Input
               value={titleValue}
@@ -302,7 +298,7 @@ export function TierBoard({
             />
           ) : (
             <h1
-              className="text-xl font-bold text-white cursor-pointer hover:text-[#f97316]"
+              className="min-w-0 truncate text-xl font-bold text-white cursor-pointer hover:text-[#f97316]"
               onClick={() => {
                 setTitleValue(list.title)
                 setEditingTitle(true)
