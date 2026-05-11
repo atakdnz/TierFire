@@ -29,7 +29,7 @@ export function ItemBank({ items, onItemClick, selectedItemId, onAddItem, compac
       ref={setNodeRef}
       className={cn(
         'min-h-[96px] p-2 rounded-lg border-2 border-dashed border-[#262626]',
-        compact && 'max-h-[calc(100vh-190px)] overflow-y-auto',
+        compact && 'lg:h-[calc(100vh-118px)] lg:min-h-0 lg:overflow-y-auto',
         'transition-colors duration-200',
         isOver && 'border-[#f97316] bg-[#f97316]/5'
       )}

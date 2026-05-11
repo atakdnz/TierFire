@@ -518,7 +518,7 @@ export function TierBoard({
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-4">
+      <main className={bankOnRight ? 'px-4 py-4' : 'max-w-6xl mx-auto px-4 py-4'}>
         {notice && (
           <div className="mb-4 rounded-lg border border-[#f97316]/30 bg-[#f97316]/10 px-4 py-3 text-sm text-[#fed7aa] flex items-center justify-between gap-4">
             <span>{notice}</span>
@@ -533,18 +533,20 @@ export function TierBoard({
         )}
 
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className={bankOnRight ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_224px]' : ''}>
-            <div className="space-y-px">
-              <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
-                {sortedTiers.map((tier) => (
-                  <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
-                    <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
-                  </div>
-                ))}
-              </SortableContext>
+          <div className={bankOnRight ? 'lg:flex lg:items-start lg:justify-center lg:gap-4' : ''}>
+            <div className="w-full max-w-6xl space-y-px">
+              <div className="space-y-px">
+                <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
+                  {sortedTiers.map((tier) => (
+                    <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
+                      <TierRow tier={tier} items={itemsByTier[tier.id] || []} onItemClick={handleItemClick} selectedItemId={selectedItemId} onUpdateTier={onUpdateTier} />
+                    </div>
+                  ))}
+                </SortableContext>
+              </div>
             </div>
 
-            <div className={bankOnRight ? 'mt-4 lg:sticky lg:top-20 lg:mt-0 lg:self-start' : 'mt-4'}>
+            <div className={bankOnRight ? 'mt-4 lg:sticky lg:top-20 lg:mt-0 lg:w-[224px] lg:flex-none lg:self-start' : 'mt-4'}>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-semibold text-white">Item Bank</h2>
               </div>
