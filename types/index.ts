@@ -2,6 +2,10 @@ export interface TierItem {
   id: string
   label: string
   imageUrl?: string
+  imageFit?: 'cover' | 'contain'
+  imagePositionX?: number
+  imagePositionY?: number
+  imageScale?: number
   overlayText?: string
   overlayFont?: string
   overlaySize?: number

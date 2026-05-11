@@ -490,6 +490,18 @@ export function useTierList() {
     dispatch({ type: 'ADD_ITEM', listId, item })
   }, [state.lists])
 
+  const duplicateItem = useCallback((listId: string, sourceItem: TierItem) => {
+    const list = state.lists.find((l) => l.id === listId)
+    const nextOrder = list?.items.filter((item) => item.tierId === sourceItem.tierId).length ?? 0
+    const item: TierItem = {
+      ...sourceItem,
+      id: generateId(),
+      label: sourceItem.label,
+      order: nextOrder,
+    }
+    dispatch({ type: 'ADD_ITEM', listId, item })
+  }, [state.lists])
+
   const updateItem = useCallback((listId: string, item: TierItem, previous: TierItem) => {
     dispatch({ type: 'UPDATE_ITEM', listId, item, previous })
   }, [])
@@ -545,6 +557,7 @@ export function useTierList() {
     togglePublic,
     replaceList,
     addItem,
+    duplicateItem,
     updateItem,
     removeItem,
     moveItem,

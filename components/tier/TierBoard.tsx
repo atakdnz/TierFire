@@ -41,6 +41,7 @@ interface TierBoardProps {
   onCreateList: (title: string) => void
   onSetActiveList: (listId: string) => void
   onAddItem: (label: string, imageUrl?: string) => void
+  onDuplicateItem: (item: TierItemType) => void
   onUpdateItem: (item: TierItemType) => void
   onRemoveItem: (item: TierItemType) => void
   onMoveItem: (itemId: string, toTierId: string | null, order: number) => void
@@ -66,6 +67,7 @@ export function TierBoard({
   onCreateList,
   onSetActiveList,
   onAddItem,
+  onDuplicateItem,
   onUpdateItem,
   onRemoveItem,
   onMoveItem,
@@ -235,6 +237,12 @@ export function TierBoard({
       setSelectedItemId(null)
       setShowEditModal(false)
     }
+  }
+
+  const selectedItem = list.items.find((i) => i.id === selectedItemId) || null
+
+  const updateSelectedItem = (patch: Partial<TierItemType>) => {
+    if (selectedItem) onUpdateItem({ ...selectedItem, ...patch })
   }
 
   const handleSaveTitle = () => {
@@ -541,23 +549,100 @@ export function TierBoard({
         <div className="space-y-4">
           <Input
             label="Label"
-            value={list.items.find((i) => i.id === selectedItemId)?.label || ''}
-            onChange={(e) => {
-              const item = list.items.find((i) => i.id === selectedItemId)
-              if (item) onUpdateItem({ ...item, label: e.target.value })
-            }}
+            value={selectedItem?.label || ''}
+            onChange={(e) => updateSelectedItem({ label: e.target.value })}
           />
           <ImageUpload
-            value={list.items.find((i) => i.id === selectedItemId)?.imageUrl || ''}
+            value={selectedItem?.imageUrl || ''}
             cloudRequired={Boolean(user && list.ownerId)}
             onChange={(url) => {
-              const item = list.items.find((i) => i.id === selectedItemId)
-              if (item) onUpdateItem({ ...item, imageUrl: url })
+              updateSelectedItem({
+                imageUrl: url,
+                imageFit: selectedItem?.imageFit ?? 'cover',
+                imagePositionX: selectedItem?.imagePositionX ?? 50,
+                imagePositionY: selectedItem?.imagePositionY ?? 50,
+                imageScale: selectedItem?.imageScale ?? 1,
+              })
             }}
           />
+          {selectedItem?.imageUrl && (
+            <div className="space-y-3 rounded-lg border border-[#262626] bg-[#141414] p-3">
+              <div className="aspect-square w-32 overflow-hidden bg-[#262626]">
+                <img
+                  src={selectedItem.imageUrl}
+                  alt={selectedItem.label}
+                  className="h-full w-full"
+                  style={{
+                    objectFit: selectedItem.imageFit ?? 'cover',
+                    objectPosition: `${selectedItem.imagePositionX ?? 50}% ${selectedItem.imagePositionY ?? 50}%`,
+                    transform: `scale(${selectedItem.imageScale ?? 1})`,
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1 text-xs text-[#a1a1a1]">
+                  X Position
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={selectedItem.imagePositionX ?? 50}
+                    onChange={(event) => updateSelectedItem({ imagePositionX: Number(event.target.value) })}
+                    className="w-full"
+                  />
+                </label>
+                <label className="space-y-1 text-xs text-[#a1a1a1]">
+                  Y Position
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={selectedItem.imagePositionY ?? 50}
+                    onChange={(event) => updateSelectedItem({ imagePositionY: Number(event.target.value) })}
+                    className="w-full"
+                  />
+                </label>
+              </div>
+              <label className="space-y-1 text-xs text-[#a1a1a1]">
+                Zoom
+                <input
+                  type="range"
+                  min="1"
+                  max="2.5"
+                  step="0.05"
+                  value={selectedItem.imageScale ?? 1}
+                  onChange={(event) => updateSelectedItem({ imageScale: Number(event.target.value), imageFit: 'cover' })}
+                  className="w-full"
+                />
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  variant={(selectedItem.imageFit ?? 'cover') === 'cover' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => updateSelectedItem({ imageFit: 'cover' })}
+                >
+                  Fill
+                </Button>
+                <Button
+                  variant={selectedItem.imageFit === 'contain' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => updateSelectedItem({ imageFit: 'contain', imageScale: 1 })}
+                >
+                  Fit
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex justify-between">
             <Button variant="danger" size="sm" onClick={handleDeleteItem}>Delete</Button>
-            <Button variant="primary" onClick={() => setShowEditModal(false)}>Done</Button>
+            <div className="flex gap-2">
+              {selectedItem && (
+                <Button variant="secondary" size="sm" onClick={() => onDuplicateItem(selectedItem)}>
+                  Duplicate
+                </Button>
+              )}
+              <Button variant="primary" onClick={() => setShowEditModal(false)}>Done</Button>
+            </div>
           </div>
         </div>
       </Modal>

@@ -20,6 +20,7 @@ export default function BoardPage() {
     updateListTitle,
     togglePublic,
     addItem,
+    duplicateItem,
     updateItem,
     removeItem,
     moveItem,
@@ -70,6 +71,7 @@ export default function BoardPage() {
       onCreateList={createList}
       onSetActiveList={setActiveList}
       onAddItem={(label, imageUrl) => addItem(activeList.id, label, imageUrl)}
+      onDuplicateItem={(item) => duplicateItem(activeList.id, item)}
       onUpdateItem={(item) => {
         const prev = activeList.items.find(i => i.id === item.id)
         if (prev) updateItem(activeList.id, item, prev)

@@ -13,15 +13,6 @@ interface TierItemProps {
   draggable?: boolean
 }
 
-const tierColors: Record<string, string> = {
-  'tier-s': '#ef4444',
-  'tier-a': '#f97316',
-  'tier-b': '#eab308',
-  'tier-c': '#22c55e',
-  'tier-d': '#3b82f6',
-  'tier-f': '#6b7280',
-}
-
 export function TierItem({ item, onClick, selected, overlay, draggable = true }: TierItemProps) {
   const {
     attributes,
@@ -42,7 +33,10 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
     zIndex: isDragging ? 50 : undefined,
   }
 
-  const overlayBg = item.tierId ? tierColors[item.tierId] : null
+  const imageScale = item.imageScale ?? 1
+  const imagePositionX = item.imagePositionX ?? 50
+  const imagePositionY = item.imagePositionY ?? 50
+  const imageFit = item.imageFit ?? 'cover'
 
   return (
     <div
@@ -66,20 +60,16 @@ export function TierItem({ item, onClick, selected, overlay, draggable = true }:
           <img
             src={item.imageUrl}
             alt={item.label}
-            className="w-full h-full object-cover"
+            className="w-full h-full"
+            style={{
+              objectFit: imageFit,
+              objectPosition: `${imagePositionX}% ${imagePositionY}%`,
+              transform: `scale(${imageScale})`,
+            }}
           />
-          {overlayBg && (
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{ backgroundColor: overlayBg }}
-            />
-          )}
         </div>
       ) : (
-        <div
-          className="w-full h-full flex items-center justify-center p-1.5"
-          style={overlayBg ? { backgroundColor: `${overlayBg}30` } : {}}
-        >
+        <div className="w-full h-full flex items-center justify-center p-1.5">
           <span className="text-sm text-white text-center font-medium line-clamp-3">
             {item.label}
           </span>
