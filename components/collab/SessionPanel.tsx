@@ -7,12 +7,13 @@ import { Button } from '../ui/Button'
 
 interface SessionPanelProps {
   session: Session
-  onLeave: () => void
+  onLeave: () => void | Promise<void>
   currentUserId?: string
+  leaving?: boolean
   className?: string
 }
 
-export function SessionPanel({ session, onLeave, currentUserId, className }: SessionPanelProps) {
+export function SessionPanel({ session, onLeave, currentUserId, leaving = false, className }: SessionPanelProps) {
   const copyLink = async () => {
     const url = `${window.location.origin}/session/${session.id}`
     await navigator.clipboard.writeText(url)
@@ -51,9 +52,9 @@ export function SessionPanel({ session, onLeave, currentUserId, className }: Ses
       </div>
 
       <div className="p-3 border-t border-[#262626]">
-        <Button variant="danger" size="sm" className="w-full" onClick={onLeave}>
+        <Button variant="danger" size="sm" className="w-full" onClick={onLeave} disabled={leaving}>
           <X className="w-4 h-4 mr-1" />
-          {isHost ? 'End Session' : 'Leave'}
+          {leaving ? 'Leaving...' : isHost ? 'End Session' : 'Leave'}
         </Button>
       </div>
     </div>

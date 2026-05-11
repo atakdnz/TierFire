@@ -119,6 +119,20 @@ export async function leaveSession(sessionId: string, uid: string): Promise<void
   }
 }
 
+export async function endSession(sessionId: string, uid: string): Promise<void> {
+  const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId)
+  const sessionDoc = await getDoc(sessionRef)
+  if (!sessionDoc.exists()) return
+
+  const sessionData = sessionDoc.data()
+  if (sessionData.hostId !== uid) {
+    await leaveSession(sessionId, uid)
+    return
+  }
+
+  await deleteDoc(sessionRef)
+}
+
 export async function updateParticipantStatus(
   sessionId: string,
   uid: string,

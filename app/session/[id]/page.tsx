@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Lock } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { subscribeToSession, subscribeToActivity, type Session } from '@/lib/sessions'
+import { endSession, leaveSession, subscribeToSession, subscribeToActivity, type Session } from '@/lib/sessions'
 import { TierList as TierListType, TierItem as TierItemType } from '@/types'
 import { getList } from '@/lib/firestore'
 import { TierRow } from '@/components/tier/TierRow'
@@ -31,6 +31,7 @@ export default function SessionPage() {
   const [list, setList] = useState<TierListType | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+  const [leaving, setLeaving] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
@@ -95,6 +96,22 @@ export default function SessionPage() {
   }, [list])
 
   const handleLeave = async () => {
+    if (leaving) return
+    setLeaving(true)
+    try {
+      if (session && user) {
+        if (session.hostId === user.uid) {
+          await endSession(session.id, user.uid)
+        } else {
+          await leaveSession(session.id, user.uid)
+        }
+      }
+    } finally {
+      router.push('/board')
+    }
+  }
+
+  const handleBack = () => {
     router.push('/board')
   }
 
@@ -121,7 +138,7 @@ export default function SessionPage() {
     <div className="min-h-screen bg-[#0f0f0f]">
       <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#262626]">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button onClick={handleLeave} className="p-2 hover:bg-[#262626] rounded-lg">
+          <button onClick={handleBack} className="p-2 hover:bg-[#262626] rounded-lg">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-white">{list?.title || 'Session'}</h1>
@@ -140,7 +157,7 @@ export default function SessionPage() {
           <div className="flex-1">
             <div className="space-y-2">
               {sortedTiers.map((tier) => (
-                <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} />
+                <TierRow key={tier.id} tier={tier} items={itemsByTier[tier.id] || []} readOnly />
               ))}
             </div>
 
@@ -148,14 +165,14 @@ export default function SessionPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Item Bank</h2>
               <div className="grid grid-cols-6 gap-3">
                 {(itemsByTier['bank'] || []).map((item) => (
-                  <TierItem key={item.id} item={item} />
+                  <TierItem key={item.id} item={item} draggable={false} />
                 ))}
               </div>
             </div>
           </div>
 
           <div className="w-72 space-y-4">
-            <SessionPanel session={session} onLeave={handleLeave} currentUserId={user?.uid} />
+            <SessionPanel session={session} onLeave={handleLeave} currentUserId={user?.uid} leaving={leaving} />
             <ActivityFeed activities={activities} />
           </div>
         </div>
