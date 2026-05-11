@@ -445,7 +445,7 @@ export function TierBoard({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-4 py-4">
         {notice && (
           <div className="mb-4 rounded-lg border border-[#f97316]/30 bg-[#f97316]/10 px-4 py-3 text-sm text-[#fed7aa] flex items-center justify-between gap-4">
             <span>{notice}</span>
@@ -460,7 +460,7 @@ export function TierBoard({
         )}
 
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <SortableContext items={tierIds} strategy={verticalListSortingStrategy}>
               {sortedTiers.map((tier) => (
                 <div key={tier.id} onClick={() => handleTierClick(tier.id)}>
@@ -470,9 +470,9 @@ export function TierBoard({
             </SortableContext>
           </div>
 
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Item Bank</h2>
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-white">Item Bank</h2>
               <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
                 <Plus className="w-4 h-4 mr-1" /> Add Item
               </Button>
@@ -482,11 +482,11 @@ export function TierBoard({
           <DragOverlay>
             {activeItem ? <TierItem item={activeItem} overlay /> : null}
             {!activeItem && activeTier ? (
-              <div className="h-[72px] min-w-[220px] rounded-lg border border-[#404040] bg-[#1a1a1a] shadow-2xl flex overflow-hidden">
-                <div className="w-20 flex items-center justify-center font-bold text-white" style={{ backgroundColor: activeTier.color }}>
+              <div className="h-[56px] min-w-[180px] rounded-md border border-[#404040] bg-[#1a1a1a] shadow-2xl flex overflow-hidden">
+                <div className="w-12 flex items-center justify-center font-bold text-white" style={{ backgroundColor: activeTier.color }}>
                   {activeTier.label}
                 </div>
-                <div className="flex-1 px-4 flex items-center text-sm text-[#a1a1a1]">Move tier</div>
+                <div className="flex-1 px-3 flex items-center text-xs text-[#a1a1a1]">Move tier</div>
               </div>
             ) : null}
           </DragOverlay>

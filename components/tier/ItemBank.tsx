@@ -25,18 +25,18 @@ export function ItemBank({ items, onItemClick, selectedItemId }: ItemBankProps) 
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[140px] p-4 rounded-lg border-2 border-dashed border-[#262626]',
+        'min-h-[96px] p-2 rounded-lg border-2 border-dashed border-[#262626]',
         'transition-colors duration-200',
         isOver && 'border-[#f97316] bg-[#f97316]/5'
       )}
     >
       {sortedItems.length === 0 ? (
-        <div className="h-[120px] flex items-center justify-center text-[#525252]">
+        <div className="h-[72px] flex items-center justify-center text-sm text-[#525252]">
           Add items to get started
         </div>
       ) : (
         <SortableContext items={itemIds} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
             {sortedItems.map((item) => (
               <TierItem
                 key={item.id}
