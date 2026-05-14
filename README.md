@@ -135,4 +135,4 @@ Contributions, issues, and feature requests are welcome.
 
 ## License
 
-No license file is included yet. Add one before accepting external contributions or reuse.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
