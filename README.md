@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <h1>TierFire</h1>
+  <p><strong>A modern, high-performance tier list maker with real-time collaboration and cloud persistence.</strong></p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js 16" />
+    <img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React 19" />
+    <img src="https://img.shields.io/badge/Tailwind-v4-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS v4" />
+    <img src="https://img.shields.io/badge/Firebase-Auth_&_Firestore-FFCA28?style=for-the-badge&logo=firebase" alt="Firebase" />
+  </p>
+</div>
+
+---
+
+## Overview
+
+**TierFire** is a next-generation tier list creation platform built with modern web technologies. Whether you are a guest wanting to make a quick draft or a registered user managing an extensive collection of tier lists, TierFire provides a sleek, drag-and-drop enabled interface to visualize your rankings. 
+
+It aims to replace clunky legacy tier list makers with a fluid, accessible, and feature-rich experience.
+
+---
+
+## Key Features
+
+- **Modern Drag & Drop Interface:** Powered by `@dnd-kit` for buttery-smooth interactions across desktop and mobile devices.
+- **Cloud & Guest Modes:** Start drafting immediately as a guest (saved to `localStorage`), and seamlessly migrate your work to the cloud once authenticated via Firebase Auth.
+- **Cloudinary Integration:** Effortlessly upload images directly to your item bank with automatic optimization and resizing.
+- **High-Quality PNG Export:** Generate crisp, native Canvas exports of your tier board—complete with custom image cropping—perfect for sharing on social media.
+- **Snapshots & History:** Never lose your work. Manually save snapshots and restore them with a built-in history manager.
+- **Live Sessions:** Scaffolded real-time collaboration mode allowing you to share a read-only or collaborative session room.
+- **Premium Customization:** Fully customizable tier rows, intuitive color pickers, and inline editing for a flawless authoring experience.
+
+---
+
+## Tech Stack
+
+TierFire is built on the bleeding edge of the React ecosystem:
+
+- **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
+- **UI & React:** [React 19](https://react.dev/)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Interactions:** `@dnd-kit/core` & `@dnd-kit/sortable`
+- **Backend/Auth:** [Firebase Auth & Firestore](https://firebase.google.com/)
+- **Media Storage:** [Cloudinary](https://cloudinary.com/)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+You will need **Node.js** (v18+) and your preferred package manager (`npm`, `yarn`, `pnpm`, or `bun`).
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory and populate it with your Firebase and Cloudinary credentials:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+
+# Cloudinary
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_key
+CLOUDINARY_API_SECRET=your_cloudinary_secret
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/tierfire.git
+   cd tierfire/tierfire-mvp
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-## Learn More
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the application in action.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```text
+tierfire-mvp/
+├── app/                  # Next.js App Router pages & API routes
+├── components/           # Reusable UI components
+│   ├── tier/             # Core tier board components (Board, Row, Item, Bank)
+│   ├── ui/               # Generic UI components (Buttons, Inputs, Modals)
+│   └── collab/           # Collaboration & session UI
+├── hooks/                # Custom React hooks (useTierList, useAuth, useHistory)
+├── lib/                  # Utilities, Firebase config, & Firestore helpers
+└── types/                # TypeScript interfaces and definitions
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Usage Highlights
+
+### Creating a Tier List
+- **Drag and Drop:** Easily drag items from your item bank directly into any tier row. Reorder items within tiers or drag them back to the bank to remove them.
+- **Tap-to-Assign:** On mobile devices, tap an item in the bank to select it, then tap a tier row to assign it instantly.
+- **Customization:** Click on a tier label to edit its name or change its color block. Long-press or click an item to adjust its label or replace its image.
+
+### Exporting your List
+Click the **Download** icon in the board header to instantly trigger a Canvas-based export of your tier board. It perfectly renders your customized tiers and images into a high-quality PNG, ignoring the UI clutter.
+
+---
+
+## Contributing
+
+Contributions, issues, and feature requests are welcome! 
+
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`). _Please follow the commit rules outlined in `githubCommitProcess.md`._
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
