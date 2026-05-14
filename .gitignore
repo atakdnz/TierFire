@@ -33,6 +33,7 @@ PROJECT_CONTEXT.md
 SPEC.md
 implementation_plan.md
 githubCommitProcess.md
+githubProcess.md
 
 # debug
 npm-debug.log*
