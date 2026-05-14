@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { TierItem as TierItemType, Tier } from '@/types'
-import { cn } from '@/lib/utils'
 import { Snapshot } from '@/lib/snapshots'
 
 interface GlowModeProps {
@@ -39,7 +38,7 @@ export function GlowMode({ list, snapshot, children }: GlowModeProps) {
     })
   }, [list, snapshot])
 
-  const containerRef = useMemo(() => {
+  useMemo(() => {
     if (!snapshot) return children
 
     const style = document.createElement('style')

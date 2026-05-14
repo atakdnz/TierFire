@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, Save, RotateCcw, Play, ChevronRight } from 'lucide-react'
+import { Clock, Save, ChevronRight } from 'lucide-react'
 import { Snapshot } from '@/lib/snapshots'
 import { cn } from '@/lib/utils'
 import { Button } from '../ui/Button'
@@ -19,7 +19,6 @@ export function HistoryTimeline({
   snapshots,
   currentItems,
   onSnapshotClick,
-  onRestore,
   onSave,
   className,
 }: HistoryTimelineProps) {

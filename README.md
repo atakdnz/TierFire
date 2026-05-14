@@ -1,6 +1,6 @@
 <div align="center">
   <h1>TierFire</h1>
-  <p><strong>A modern, high-performance tier list maker with real-time collaboration and cloud persistence.</strong></p>
+  <p><strong>A modern tier list maker with guest drafts, cloud persistence, image uploads, history snapshots, and sharing workflows.</strong></p>
   
   <p>
     <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js 16" />
@@ -14,7 +14,7 @@
 
 ## Overview
 
-**TierFire** is a next-generation tier list creation platform built with modern web technologies. Whether you are a guest wanting to make a quick draft or a registered user managing an extensive collection of tier lists, TierFire provides a sleek, drag-and-drop enabled interface to visualize your rankings. 
+**TierFire** is a tier list creation platform built with modern web technologies. Whether you are a guest making a quick draft or a registered user managing a collection of tier lists, TierFire provides a drag-and-drop interface to visualize your rankings.
 
 It aims to replace clunky legacy tier list makers with a fluid, accessible, and feature-rich experience.
 
@@ -27,14 +27,14 @@ It aims to replace clunky legacy tier list makers with a fluid, accessible, and 
 - **Cloudinary Integration:** Effortlessly upload images directly to your item bank with automatic optimization and resizing.
 - **High-Quality PNG Export:** Generate crisp, native Canvas exports of your tier board—complete with custom image cropping—perfect for sharing on social media.
 - **Snapshots & History:** Never lose your work. Manually save snapshots and restore them with a built-in history manager.
-- **Live Sessions:** Scaffolded real-time collaboration mode allowing you to share a read-only or collaborative session room.
+- **Live Sessions:** Share a session room for read-only viewing or collaborative editing.
 - **Premium Customization:** Fully customizable tier rows, intuitive color pickers, and inline editing for a flawless authoring experience.
 
 ---
 
 ## Tech Stack
 
-TierFire is built on the bleeding edge of the React ecosystem:
+TierFire is built with the React ecosystem:
 
 - **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
 - **UI & React:** [React 19](https://react.dev/)
@@ -61,6 +61,9 @@ Create a `.env.local` file in the root directory and populate it with your Fireb
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
 # Cloudinary
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -73,7 +76,7 @@ CLOUDINARY_API_SECRET=your_cloudinary_secret
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/tierfire.git
-   cd tierfire/tierfire-mvp
+   cd tierfire
    ```
 
 2. **Install dependencies:**
@@ -120,11 +123,11 @@ Click the **Download** icon in the board header to instantly trigger a Canvas-ba
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! 
+Contributions, issues, and feature requests are welcome.
 
 1. Fork the project.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`). _Please follow the commit rules outlined in `githubCommitProcess.md`._
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
 4. Push to the branch (`git push origin feature/AmazingFeature`).
 5. Open a Pull Request.
 
@@ -132,5 +135,4 @@ Contributions, issues, and feature requests are welcome!
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
+No license file is included yet. Add one before accepting external contributions or reuse.

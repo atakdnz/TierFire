@@ -2,8 +2,6 @@
 
 import { useState, useRef } from 'react'
 import { TierItem as TierItemType, Tier } from '@/types'
-import { cn } from '@/lib/utils'
-import { Button } from '../ui/Button'
 
 interface ItemHistoryTooltipProps {
   item: TierItemType
@@ -12,17 +10,7 @@ interface ItemHistoryTooltipProps {
   children: React.ReactNode
 }
 
-const tierRank: Record<string, number> = {
-  'tier-s': 6,
-  'tier-a': 5,
-  'tier-b': 4,
-  'tier-c': 3,
-  'tier-d': 2,
-  'tier-f': 1,
-}
-
 export function ItemHistoryTooltip({
-  item,
   history,
   tiers,
   children,
@@ -60,9 +48,6 @@ export function ItemHistoryTooltip({
       minute: '2-digit',
     })
   }
-
-  const currentTier = item.tierId
-  const currentRank = currentTier ? tierRank[currentTier] || 0 : 0
 
   return (
     <div

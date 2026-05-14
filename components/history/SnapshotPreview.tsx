@@ -1,8 +1,8 @@
 'use client'
 
-import { X, Eye } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Snapshot } from '@/lib/snapshots'
-import { TierList as TierListType, TierItem as TierItemType, Tier } from '@/types'
+import { TierList as TierListType, TierItem as TierItemType } from '@/types'
 import { TierRow } from '../tier/TierRow'
 import { TierItem } from '../tier/TierItem'
 import { Button } from '../ui/Button'
@@ -17,7 +17,6 @@ interface SnapshotPreviewProps {
 
 export function SnapshotPreview({
   snapshot,
-  currentList,
   onClose,
   onRestore,
 }: SnapshotPreviewProps) {

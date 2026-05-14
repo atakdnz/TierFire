@@ -5,16 +5,11 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  getDocs,
   query,
-  where,
   orderBy,
   onSnapshot,
-  setDoc,
-  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { type TierList, type TierItem, type Tier } from '@/types'
 
 const SESSIONS_COLLECTION = 'sessions'
 

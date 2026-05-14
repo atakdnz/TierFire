@@ -22,7 +22,16 @@
 
 # misc
 .DS_Store
+NOTES.txt
 *.pem
+
+# local/internal planning and agent notes
+AGENTS.md
+CLAUDE.md
+PROJECT_CONTEXT.md
+SPEC.md
+implementation_plan.md
+githubCommitProcess.md
 
 # debug
 npm-debug.log*
